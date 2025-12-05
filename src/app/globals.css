@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+  }
+}
+
+@layer base {
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  /* Custom utility classes */
+  .container-center {
+    @apply container mx-auto px-4 py-8;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-200 hover:scale-105 hover:shadow-lg;
+  }
+  
+  .btn-primary-custom {
+    @apply bg-blue-500 text-white px-6 py-3 font-semibold rounded-lg shadow-md hover:bg-blue-600 hover:shadow-lg transition-all duration-200;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-500 to-slate-600 bg-clip-text text-transparent;
+  }
+}
