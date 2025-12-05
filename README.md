@@ -1,4 +1,4 @@
-# ATS Resume Maker
+# ATS Resume Maker (Build with cto.new and Claude Opus 4.5)
 
 A free, open-source ATS-friendly resume builder built with React, Vite, and DaisyUI.
 
@@ -33,7 +33,7 @@ A free, open-source ATS-friendly resume builder built with React, Vite, and Dais
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/stevenarif123/ATSMaker.git
 cd atsmaker
 ```
 
@@ -46,8 +46,6 @@ npm install
 ```bash
 npm run dev
 ```
-
-4. Open your browser and navigate to `http://localhost:5173`
 
 ### Building for Production
 
