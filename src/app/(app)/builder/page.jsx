@@ -6,6 +6,7 @@ import { DndContext } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { useResumeStore } from '../../../store/resumeStore';
 import { exportToPDF, exportToJSON } from '../../../lib/pdfExport';
+import { exportToDOCX } from '../../../lib/docxExport';
 import PersonalInfoSection from '../../../components/sections/PersonalInfoSection';
 import ExperienceSection from '../../../components/sections/ExperienceSection';
 import EducationSection from '../../../components/sections/EducationSection';
@@ -25,6 +26,7 @@ export default function Builder() {
   const [showPreview, setShowPreview] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(50);
   
   const resumeData = useResumeStore();
@@ -44,6 +46,22 @@ export default function Builder() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showExportDropdown && !event.target.closest('.export-dropdown-container')) {
+        setShowExportDropdown(false);
+      }
+    };
+
+    if (showExportDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportDropdown]);
+
   const handleExportPDF = async () => {
     setIsExporting(true);
     try {
@@ -62,6 +80,29 @@ export default function Builder() {
       });
     } catch (error) {
       console.error('PDF export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportDOCX = async () => {
+    setIsExporting(true);
+    try {
+      const previewElement = document.getElementById('resume-preview');
+      await exportToDOCX(previewElement, `${resumeData.personalInfo.fullName || 'resume'}.docx`, {
+        personalInfo: resumeData.personalInfo,
+        experience: resumeData.experience,
+        education: resumeData.education,
+        skills: resumeData.skills,
+        projects: resumeData.projects,
+        certifications: resumeData.certifications || [],
+        languages: resumeData.languages || [],
+        links: resumeData.links || [],
+        customSections: resumeData.customSections || [],
+        template: selectedTemplate
+      });
+    } catch (error) {
+      console.error('DOCX export failed:', error);
     } finally {
       setIsExporting(false);
     }
@@ -203,25 +244,66 @@ export default function Builder() {
                 <span className="hidden sm:inline">Save</span>
               </button>
 
-              <button
-                onClick={handleExportPDF}
-                disabled={isExporting}
-                className="btn btn-primary btn-sm"
-              >
-                {isExporting ? (
-                  <>
-                    <span className="spinner spinner-sm"></span>
-                    <span className="hidden sm:inline">Exporting...</span>
-                  </>
-                ) : (
-                  <>
+              <div className="relative export-dropdown-container">
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="btn btn-primary btn-sm"
+                >
+                  {isExporting ? (
+                    <>
+                      <span className="spinner spinner-sm"></span>
+                      <span className="hidden sm:inline">Exporting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="hidden sm:inline">Export PDF</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  disabled={isExporting}
+                  className="btn btn-primary btn-sm px-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+
+              {showExportDropdown && (
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 z-50 min-w-[120px]">
+                  <button
+                    onClick={() => {
+                      setShowExportDropdown(false);
+                      handleExportPDF();
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
+                  >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <span className="hidden sm:inline">Export PDF</span>
-                  </>
-                )}
-              </button>
+                    Export PDF
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowExportDropdown(false);
+                      handleExportDOCX();
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export DOCX
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
