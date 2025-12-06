@@ -1,8 +1,8 @@
-# ATS Resume Maker
+# ATS Resume Maker (Build with cto.new and Claude Opus 4.5)
 
 **A free, modern, and easy-to-use ATS-friendly resume builder**
 
-ATS Resume Maker is a web application designed to help you create the perfect resume optimized for Applicant Tracking Systems (ATS). Built with modern technology, it provides an exceptional user experience with real-time editing, multiple template choices, and advanced features to maximize your chances in the recruitment process.
+ATS Resume Maker is a web application designed to help you create the perfect resume optimized for Applicant Tracking Systems (ATS). It provides an exceptional user experience with real-time editing, multiple template choices, and advanced features to maximize your chances in the recruitment process.
 
 ## 🚀 Key Features
 
@@ -279,7 +279,7 @@ Each template includes:
 
 ```bash
 # Clone repository
-git clone https://github.com/stevenarif123/ATSMaker.git
+git clone <repository-url>
 cd ATSMaker
 
 # Install dependencies
