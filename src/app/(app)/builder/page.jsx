@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { DndContext } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { useResumeStore } from '../../../store/resumeStore';
 import { exportToPDF, exportToJSON } from '../../../lib/pdfExport';
+import { calculateATSScore } from '../../../lib/atsScoring';
 import PersonalInfoSection from '../../../components/sections/PersonalInfoSection';
 import ExperienceSection from '../../../components/sections/ExperienceSection';
 import EducationSection from '../../../components/sections/EducationSection';
@@ -16,6 +17,7 @@ import LanguagesSection from '../../../components/sections/LanguagesSection';
 import LinksSection from '../../../components/sections/LinksSection';
 import ResumePreview, { RESUME_TEMPLATES } from '../../../components/ResumePreview';
 import OfflineIndicator from '../../../components/OfflineIndicator';
+import ATSScorePanel from '../../../components/ATSScorePanel';
 
 export default function Builder() {
   const [activeTab, setActiveTab] = useState('personal');
@@ -26,8 +28,29 @@ export default function Builder() {
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(50);
+  const [showATSPanel, setShowATSPanel] = useState(true);
   
   const resumeData = useResumeStore();
+  
+  // Calculate ATS score with memoization
+  const atsScore = useMemo(() => {
+    const score = calculateATSScore(resumeData, resumeData.jobDescription || '');
+    return score.overallScore;
+  }, [
+    resumeData.personalInfo,
+    resumeData.experience,
+    resumeData.education,
+    resumeData.skills,
+    resumeData.projects,
+    resumeData.certifications,
+    resumeData.languages,
+    resumeData.jobDescription
+  ]);
+  
+  // Throttled job description handler
+  const handleJobDescriptionChange = useCallback((description) => {
+    resumeData.setJobDescription(description);
+  }, [resumeData]);
 
   useEffect(() => {
     setIsOffline(!navigator.onLine);
@@ -158,14 +181,28 @@ export default function Builder() {
         <div className="container-center py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="font-bold text-slate-900 hidden sm:inline">ATS Maker</span>
+              </Link>
+              
+              {/* ATS Score Badge */}
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
+                atsScore >= 80 ? 'bg-green-100 text-green-700' :
+                atsScore >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                'bg-red-100 text-red-700'
+              }`}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
+                <span className="hidden sm:inline">Score:</span> {atsScore}/100
               </div>
-              <span className="font-bold text-slate-900 hidden sm:inline">ATS Maker</span>
-            </Link>
+            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
@@ -308,7 +345,17 @@ export default function Builder() {
 
           {/* Preview Panel */}
           <div className={`lg:w-[40%] flex-shrink-0 ${showPreview ? 'block' : 'hidden lg:block'}`}>
-            <div>
+            <div className="space-y-4">
+              {/* ATS Score Panel */}
+              {showATSPanel && (
+                <ATSScorePanel
+                  resume={resumeData}
+                  jobDescription={resumeData.jobDescription || ''}
+                  onJobDescriptionChange={handleJobDescriptionChange}
+                />
+              )}
+              
+              {/* Resume Preview */}
               <div className="card">
                 <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between gap-3">
                   <h2 className="font-semibold text-slate-900">Live Preview</h2>
