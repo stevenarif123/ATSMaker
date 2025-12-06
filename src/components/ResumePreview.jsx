@@ -1,75 +1,10 @@
+import { TEMPLATE_CONFIGS } from '../lib/templateConfig';
+
 export default function ResumePreview({ id, data, template = 'classic' }) {
   const { personalInfo, experience, education, skills, projects, certifications, languages, links, customSections } = data;
 
-  // Template configurations with more visual differences
-  const templates = {
-    classic: {
-      name: 'Classic',
-      text: '#333333',
-      textDark: '#000000',
-      textMuted: '#555555',
-      textLight: '#666666',
-      border: '#cccccc',
-      borderDark: '#000000',
-      accent: '#003399',
-      headerStyle: 'centered',
-      sectionStyle: 'underline', // underline, box, none
-      bulletStyle: 'disc', // disc, dash, arrow
-      nameSize: '22px',
-      sectionTitleSize: '11px',
-      borderWidth: '1px',
-    },
-    modern: {
-      name: 'Modern',
-      text: '#374151',
-      textDark: '#111827',
-      textMuted: '#6b7280',
-      textLight: '#9ca3af',
-      border: '#e5e7eb',
-      borderDark: '#2563eb',
-      accent: '#2563eb',
-      headerStyle: 'left',
-      sectionStyle: 'colorbar', // colored left bar
-      bulletStyle: 'arrow',
-      nameSize: '26px',
-      sectionTitleSize: '12px',
-      borderWidth: '2px',
-    },
-    professional: {
-      name: 'Professional',
-      text: '#1f2937',
-      textDark: '#111827',
-      textMuted: '#4b5563',
-      textLight: '#6b7280',
-      border: '#d1d5db',
-      borderDark: '#1f2937',
-      accent: '#059669',
-      headerStyle: 'centered',
-      sectionStyle: 'box', // boxed section titles
-      bulletStyle: 'dash',
-      nameSize: '24px',
-      sectionTitleSize: '11px',
-      borderWidth: '1px',
-    },
-    minimal: {
-      name: 'Minimal',
-      text: '#18181b',
-      textDark: '#09090b',
-      textMuted: '#52525b',
-      textLight: '#71717a',
-      border: '#e4e4e7',
-      borderDark: '#a1a1aa',
-      accent: '#18181b',
-      headerStyle: 'left',
-      sectionStyle: 'none', // no decoration
-      bulletStyle: 'disc',
-      nameSize: '20px',
-      sectionTitleSize: '10px',
-      borderWidth: '0.5px',
-    },
-  };
-
-  const colors = templates[template] || templates.classic;
+  const colors = TEMPLATE_CONFIGS[template] || TEMPLATE_CONFIGS.classic;
+  const layout = colors.layout || 'single-column';
 
   // Helper to format URL for display
   const formatUrl = (url, type) => {
@@ -111,8 +46,8 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
       case 'colorbar':
         return {
           ...baseStyle,
-          color: colors.accent,
-          borderLeft: `3px solid ${colors.accent}`,
+          color: colors.accentColorColor,
+          borderLeft: `3px solid ${colors.accentColorColor}`,
           paddingTop: '0',
           paddingRight: '0',
           paddingBottom: '4px',
@@ -155,7 +90,344 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
     }
   };
 
-  return (
+  // Render sidebar layout
+  const renderSidebarLayout = () => (
+    <div 
+      id={id} 
+      style={{ 
+        fontFamily: '"Times New Roman", Times, serif', 
+        width: '816px', 
+        minHeight: '1056px',
+        display: 'flex',
+        backgroundColor: '#ffffff',
+        color: colors.text,
+        lineHeight: '1.4'
+      }}
+    >
+      {/* Sidebar */}
+      <aside style={{
+        width: colors.sidebarWidth || '25%',
+        backgroundColor: colors.sidebarBg || '#f3f4f6',
+        padding: '40px 25px',
+        color: colors.text,
+        borderRight: `1px solid ${colors.border}`,
+      }}>
+        <h1 style={{ 
+          fontSize: colors.nameSize, 
+          fontWeight: 'bold', 
+          color: colors.accentColor,
+          marginBottom: '16px',
+          letterSpacing: '0.5px'
+        }}>
+          {personalInfo.fullName || 'Your Name'}
+        </h1>
+        
+        {/* Contact Info in Sidebar */}
+        <div style={{ fontSize: '9px', color: colors.textMuted, marginBottom: '16px', lineHeight: '1.6' }}>
+          {personalInfo.email && <div>{personalInfo.email}</div>}
+          {personalInfo.phone && <div>{personalInfo.phone}</div>}
+          {personalInfo.location && <div>{personalInfo.location}</div>}
+          {personalInfo.linkedin && <div><a href={formatUrl(personalInfo.linkedin, 'linkedin')} style={{ color: colors.accentColor, textDecoration: 'none' }}>LinkedIn</a></div>}
+          {personalInfo.github && <div><a href={formatUrl(personalInfo.github, 'github')} style={{ color: colors.accentColor, textDecoration: 'none' }}>GitHub</a></div>}
+        </div>
+
+        {/* Skills in Sidebar */}
+        {skills.length > 0 && (
+          <section style={{ marginBottom: '16px' }}>
+            <h2 style={{ ...getSectionTitleStyle(), fontSize: colors.sectionTitleSize, marginBottom: '8px' }}>
+              Skills
+            </h2>
+            <div style={{ fontSize: '9px', color: colors.text, lineHeight: '1.6' }}>
+              {skills.map((skill, index) => (
+                <div key={skill.id} style={{ marginBottom: '4px' }}>
+                  {skill.name}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Languages in Sidebar */}
+        {languages && languages.length > 0 && (
+          <section style={{ marginBottom: '16px' }}>
+            <h2 style={{ ...getSectionTitleStyle(), fontSize: colors.sectionTitleSize, marginBottom: '8px' }}>
+              Languages
+            </h2>
+            <div style={{ fontSize: '9px', color: colors.text, lineHeight: '1.6' }}>
+              {languages.map((lang, index) => (
+                <div key={lang.id || index} style={{ marginBottom: '4px' }}>
+                  {lang.name}{lang.level && ` (${lang.level})`}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </aside>
+
+      {/* Main Content */}
+      <main style={{
+        flex: 1,
+        padding: '40px 35px',
+      }}>
+        {/* Summary */}
+        {personalInfo.summary && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={getSectionTitleStyle()}>
+              Professional Summary
+            </h2>
+            <p style={{ fontSize: '9px', lineHeight: '1.4', color: colors.text, textAlign: 'left', marginBottom: '0' }}>{normalizeText(personalInfo.summary)}</p>
+          </section>
+        )}
+
+        {/* Experience */}
+        {experience.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={getSectionTitleStyle()}>
+              Professional Experience
+            </h2>
+            <div>
+              {experience.map((exp, expIndex) => (
+                <div key={exp.id} style={{ marginBottom: expIndex < experience.length - 1 ? '8px' : '0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: colors.textDark, margin: '0 0 2px 0' }}>{exp.position}</h3>
+                    <span style={{ fontSize: '9px', color: colors.textLight }}>
+                      {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '9px', color: colors.textMuted, fontStyle: 'italic', marginBottom: '2px' }}>
+                    {exp.company}{exp.location ? `, ${exp.location}` : ''}
+                  </div>
+                  {exp.bullets && exp.bullets.length > 0 && (
+                    <ul style={{ fontSize: '9px', color: colors.text, margin: '0', paddingLeft: '14px', listStyleType: 'disc' }}>
+                      {exp.bullets.map((bullet, index) => (
+                        <li key={index} style={{ marginBottom: '1px', lineHeight: '1.3', textAlign: 'left' }}>
+                          {normalizeText(bullet)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Education */}
+        {education.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={getSectionTitleStyle()}>
+              Education
+            </h2>
+            <div>
+              {education.map((edu, eduIndex) => (
+                <div key={edu.id} style={{ marginBottom: eduIndex < education.length - 1 ? '6px' : '0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: colors.textDark, margin: '0 0 2px 0' }}>{edu.degree}</h3>
+                    <span style={{ fontSize: '9px', color: colors.textLight }}>
+                      {edu.startDate} – {edu.endDate}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '9px', color: colors.textMuted }}>
+                    {edu.school}{edu.location ? `, ${edu.location}` : ''}
+                    {edu.gpa && <span> | GPA: {edu.gpa}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Projects */}
+        {projects && projects.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={getSectionTitleStyle()}>
+              Projects
+            </h2>
+            <div>
+              {projects.map((project, projIndex) => (
+                <div key={project.id} style={{ marginBottom: projIndex < projects.length - 1 ? '8px' : '0' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                    <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: colors.textDark, margin: '0' }}>{project.name}</h3>
+                    {project.url && (
+                      <a 
+                        href={project.url.startsWith('http') ? project.url : `https://${project.url}`}
+                        style={{ fontSize: '8px', color: colors.accentColor, textDecoration: 'none' }}
+                      >
+                        {project.url}
+                      </a>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '9px', color: colors.text, marginTop: '1px', lineHeight: '1.3', textAlign: 'left', margin: '0' }}>{normalizeText(project.description)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+
+  // Render two-column layout
+  const renderTwoColumnLayout = () => (
+    <div 
+      id={id} 
+      style={{ 
+        fontFamily: '"Times New Roman", Times, serif', 
+        width: '816px', 
+        minHeight: '1056px',
+        display: 'flex',
+        backgroundColor: '#ffffff',
+        color: colors.text,
+        lineHeight: '1.4'
+      }}
+    >
+      {/* Left Column */}
+      <aside style={{
+        width: colors.sidebarWidth || '35%',
+        padding: '40px 25px',
+        color: colors.text,
+        borderRight: `1px solid ${colors.border}`,
+      }}>
+        <h1 style={{ 
+          fontSize: colors.nameSize, 
+          fontWeight: 'bold', 
+          color: colors.textDark,
+          marginBottom: '12px',
+          letterSpacing: '0.5px'
+        }}>
+          {personalInfo.fullName || 'Your Name'}
+        </h1>
+        
+        {/* Contact Info */}
+        <div style={{ fontSize: '8px', color: colors.textMuted, marginBottom: '12px', lineHeight: '1.5' }}>
+          {personalInfo.email && <div>{personalInfo.email}</div>}
+          {personalInfo.phone && <div>{personalInfo.phone}</div>}
+          {personalInfo.location && <div>{personalInfo.location}</div>}
+        </div>
+
+        {/* Skills */}
+        {skills.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={{ ...getSectionTitleStyle(), fontSize: '9px', marginBottom: '6px' }}>
+              Skills
+            </h2>
+            <div style={{ fontSize: '8px', color: colors.text, lineHeight: '1.5' }}>
+              {skills.map((skill) => (
+                <div key={skill.id} style={{ marginBottom: '3px' }}>
+                  {skill.name}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Languages */}
+        {languages && languages.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={{ ...getSectionTitleStyle(), fontSize: '9px', marginBottom: '6px' }}>
+              Languages
+            </h2>
+            <div style={{ fontSize: '8px', color: colors.text, lineHeight: '1.5' }}>
+              {languages.map((lang) => (
+                <div key={lang.id} style={{ marginBottom: '3px' }}>
+                  {lang.name}{lang.level && ` (${lang.level})`}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Summary */}
+        {personalInfo.summary && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={{ ...getSectionTitleStyle(), fontSize: '9px', marginBottom: '6px' }}>
+              Summary
+            </h2>
+            <p style={{ fontSize: '8px', lineHeight: '1.3', color: colors.text, textAlign: 'left', margin: '0' }}>{normalizeText(personalInfo.summary)}</p>
+          </section>
+        )}
+      </aside>
+
+      {/* Right Column */}
+      <main style={{
+        flex: 1,
+        padding: '40px 30px',
+      }}>
+        {/* Experience */}
+        {experience.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={getSectionTitleStyle()}>
+              Experience
+            </h2>
+            <div>
+              {experience.map((exp, expIndex) => (
+                <div key={exp.id} style={{ marginBottom: expIndex < experience.length - 1 ? '8px' : '0' }}>
+                  <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: colors.textDark, margin: '0 0 2px 0' }}>{exp.position}</h3>
+                  <div style={{ fontSize: '9px', color: colors.textMuted, fontStyle: 'italic', marginBottom: '2px' }}>
+                    {exp.company} {exp.location && `• ${exp.location}`}
+                  </div>
+                  <div style={{ fontSize: '9px', color: colors.textLight, marginBottom: '3px' }}>
+                    {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                  </div>
+                  {exp.bullets && exp.bullets.length > 0 && (
+                    <ul style={{ fontSize: '9px', color: colors.text, margin: '0', paddingLeft: '14px', listStyleType: 'disc' }}>
+                      {exp.bullets.map((bullet, index) => (
+                        <li key={index} style={{ marginBottom: '1px', lineHeight: '1.3' }}>
+                          {normalizeText(bullet)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Education */}
+        {education.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={getSectionTitleStyle()}>
+              Education
+            </h2>
+            <div>
+              {education.map((edu, eduIndex) => (
+                <div key={edu.id} style={{ marginBottom: eduIndex < education.length - 1 ? '6px' : '0' }}>
+                  <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: colors.textDark, margin: '0 0 2px 0' }}>{edu.degree}</h3>
+                  <div style={{ fontSize: '9px', color: colors.textMuted }}>
+                    {edu.school}{edu.location && ` • ${edu.location}`}
+                  </div>
+                  <div style={{ fontSize: '9px', color: colors.textLight }}>
+                    {edu.startDate} – {edu.endDate}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Projects */}
+        {projects && projects.length > 0 && (
+          <section style={{ marginBottom: '12px' }}>
+            <h2 style={getSectionTitleStyle()}>
+              Projects
+            </h2>
+            <div>
+              {projects.map((project, projIndex) => (
+                <div key={project.id} style={{ marginBottom: projIndex < projects.length - 1 ? '8px' : '0' }}>
+                  <h3 style={{ fontSize: '10px', fontWeight: 'bold', color: colors.textDark, margin: '0 0 2px 0' }}>{project.name}</h3>
+                  <p style={{ fontSize: '9px', color: colors.text, margin: '0 0 2px 0', lineHeight: '1.3' }}>{normalizeText(project.description)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+
+  // Render single-column layout (default)
+  const singleColumnLayout = (
     <div 
       id={id} 
       style={{ 
@@ -192,11 +464,11 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
         
         {/* Links Line */}
         {(personalInfo.linkedin || personalInfo.github) && (
-          <div style={{ fontSize: '10px', color: colors.accent }}>
+          <div style={{ fontSize: '10px', color: colors.accentColor }}>
             {personalInfo.linkedin && (
               <a 
                 href={formatUrl(personalInfo.linkedin, 'linkedin')} 
-                style={{ color: colors.accent, textDecoration: 'none' }}
+                style={{ color: colors.accentColor, textDecoration: 'none' }}
               >
                 {formatUrl(personalInfo.linkedin, 'linkedin')}
               </a>
@@ -207,7 +479,7 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
             {personalInfo.github && (
               <a 
                 href={formatUrl(personalInfo.github, 'github')} 
-                style={{ color: colors.accent, textDecoration: 'none' }}
+                style={{ color: colors.accentColor, textDecoration: 'none' }}
               >
                 {formatUrl(personalInfo.github, 'github')}
               </a>
@@ -314,7 +586,7 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
                   {project.url && (
                     <a 
                       href={project.url.startsWith('http') ? project.url : `https://${project.url}`}
-                      style={{ fontSize: '9px', color: colors.accent, textDecoration: 'none' }}
+                      style={{ fontSize: '9px', color: colors.accentColor, textDecoration: 'none' }}
                     >
                       {project.url}
                     </a>
@@ -353,7 +625,7 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
                 {cert.url && (
                   <a 
                     href={cert.url.startsWith('http') ? cert.url : `https://${cert.url}`}
-                    style={{ fontSize: '9px', color: colors.accent, textDecoration: 'none' }}
+                    style={{ fontSize: '9px', color: colors.accentColor, textDecoration: 'none' }}
                   >
                     View Certificate
                   </a>
@@ -393,7 +665,7 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
                 <span style={{ fontWeight: 'bold', color: colors.textDark }}>{link.label}: </span>
                 <a 
                   href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
-                  style={{ color: colors.accent, textDecoration: 'none' }}
+                  style={{ color: colors.accentColor, textDecoration: 'none' }}
                 >
                   {link.url}
                 </a>
@@ -429,12 +701,26 @@ export default function ResumePreview({ id, data, template = 'classic' }) {
       )}
     </div>
   );
+
+  // Route to appropriate layout renderer
+  if (layout === 'sidebar') {
+    return renderSidebarLayout();
+  } else if (layout === 'two-column') {
+    return renderTwoColumnLayout();
+  } else {
+    return singleColumnLayout;
+  }
 }
 
 // Export template options for use in other components
-export const RESUME_TEMPLATES = [
-  { id: 'classic', name: 'Classic', description: 'Traditional centered header, underline sections' },
-  { id: 'modern', name: 'Modern', description: 'Left-aligned, blue color bar sections, arrow bullets' },
-  { id: 'professional', name: 'Professional', description: 'Centered header, boxed sections, dash bullets' },
-  { id: 'minimal', name: 'Minimal', description: 'Clean left-aligned, no section borders' },
-];
+export const RESUME_TEMPLATES = Object.values(TEMPLATE_CONFIGS).map(config => ({
+  id: config.id,
+  name: config.name,
+  description: config.description,
+  category: config.category,
+  layout: config.layout,
+  accentColor: config.accentColor,
+}));
+
+// Also export full config for template selector if needed
+export { TEMPLATE_CONFIGS, TEMPLATE_CATEGORIES } from '../lib/templateConfig';

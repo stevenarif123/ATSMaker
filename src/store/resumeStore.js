@@ -19,7 +19,8 @@ const initialState = {
   certifications: [],
   languages: [],
   links: [],
-  customSections: []
+  customSections: [],
+  template: 'classic'
 };
 
 export const useResumeStore = create(
@@ -154,6 +155,9 @@ export const useResumeStore = create(
         customSections: state.customSections.filter(section => section.id !== id)
       })),
       
+      // Template
+      setTemplate: (template) => set({ template }),
+      
       // Import/Export
       importResume: (data) => set(data),
       
@@ -174,7 +178,8 @@ export const useResumeStore = create(
         certifications: state.certifications,
         languages: state.languages,
         links: state.links,
-        customSections: state.customSections
+        customSections: state.customSections,
+        template: state.template
       })
     }
   )
