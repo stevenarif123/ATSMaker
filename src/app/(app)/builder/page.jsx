@@ -14,8 +14,9 @@ import ProjectsSection from '../../../components/sections/ProjectsSection';
 import CertificationsSection from '../../../components/sections/CertificationsSection';
 import LanguagesSection from '../../../components/sections/LanguagesSection';
 import LinksSection from '../../../components/sections/LinksSection';
-import ResumePreview, { RESUME_TEMPLATES } from '../../../components/ResumePreview';
+import ResumePreview from '../../../components/ResumePreview';
 import OfflineIndicator from '../../../components/OfflineIndicator';
+import TemplateSelector from '../../../components/TemplateSelector';
 
 export default function Builder() {
   const [activeTab, setActiveTab] = useState('personal');
@@ -23,11 +24,10 @@ export default function Builder() {
   const [isExporting, setIsExporting] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('classic');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(50);
   
   const resumeData = useResumeStore();
+  const selectedTemplate = resumeData.template || 'classic';
 
   useEffect(() => {
     setIsOffline(!navigator.onLine);
@@ -340,42 +340,10 @@ export default function Builder() {
                     </div>
                     
                     {/* Template Selector */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowTemplateSelector(!showTemplateSelector)}
-                        className="btn btn-outline btn-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                        </svg>
-                        <span className="hidden sm:inline">Template</span>
-                      </button>
-                      
-                      {showTemplateSelector && (
-                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
-                          <div className="p-2">
-                            <p className="text-xs font-medium text-slate-500 uppercase px-2 py-1 mb-1">Choose Template</p>
-                            {RESUME_TEMPLATES.map((template) => (
-                              <button
-                                key={template.id}
-                                onClick={() => {
-                                  setSelectedTemplate(template.id);
-                                  setShowTemplateSelector(false);
-                                }}
-                                className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                                  selectedTemplate === template.id
-                                    ? 'bg-blue-50 text-blue-700'
-                                    : 'hover:bg-slate-50 text-slate-700'
-                                }`}
-                              >
-                                <div className="font-medium text-sm">{template.name}</div>
-                                <div className="text-xs text-slate-500">{template.description}</div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <TemplateSelector
+                      selectedTemplate={selectedTemplate}
+                      onSelectTemplate={(templateId) => resumeData.setTemplate(templateId)}
+                    />
                     
                     <button
                       onClick={() => setShowPreview(false)}
