@@ -1,8 +1,5 @@
-const CACHE_NAME = 'ats-maker-v1';
+const CACHE_NAME = 'ats-maker-v2';
 const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/manifest.json',
 ];
 
@@ -12,42 +9,47 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        return Promise.allSettled(
+          urlsToCache.map(url => cache.add(url).catch(err => console.log('Failed to cache:', url)))
+        );
       })
   );
+  self.skipWaiting();
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - network first, skip caching during development
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Skip internal Next.js requests, HMR, and development endpoints
+  if (
+    url.pathname.startsWith('/_next') ||
+    url.pathname.startsWith('/__next') ||
+    url.pathname.includes('webpack-hmr') ||
+    url.pathname.includes('_rsc') ||
+    url.pathname.includes('turbopack') ||
+    url.search.includes('_rsc') ||
+    event.request.method !== 'GET'
+  ) {
+    return;
+  }
+
+  // Network first strategy for everything else
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
+        // Only cache successful responses for static assets
+        if (response.ok && url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/)) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
         }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          (response) => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
+        return response;
+      })
+      .catch(() => {
+        // Fallback to cache when offline
+        return caches.match(event.request);
       })
   );
 });

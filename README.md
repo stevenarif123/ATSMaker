@@ -1,4 +1,4 @@
-# ATS Resume Maker
+# ATS Resume Maker (Build with cto.new and Claude Opus 4.5)
 
 **A free, modern, and easy-to-use ATS-friendly resume builder**
 
