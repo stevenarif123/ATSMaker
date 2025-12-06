@@ -6,6 +6,38 @@ const normalizeText = (text) => {
   return text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
+// Template color configurations
+const TEMPLATE_COLORS = {
+  classic: {
+    text: [51, 51, 51],
+    textDark: [0, 0, 0],
+    textMuted: [85, 85, 85],
+    accent: [0, 51, 153],
+    headerAlign: 'center'
+  },
+  modern: {
+    text: [55, 65, 81],
+    textDark: [17, 24, 39],
+    textMuted: [107, 114, 128],
+    accent: [37, 99, 235],
+    headerAlign: 'left'
+  },
+  professional: {
+    text: [31, 41, 55],
+    textDark: [17, 24, 39],
+    textMuted: [75, 85, 99],
+    accent: [5, 150, 105],
+    headerAlign: 'center'
+  },
+  minimal: {
+    text: [24, 24, 27],
+    textDark: [9, 9, 11],
+    textMuted: [82, 82, 91],
+    accent: [24, 24, 27],
+    headerAlign: 'left'
+  }
+};
+
 // ATS-friendly PDF export using native text rendering (small file size, selectable text)
 export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) => {
   try {
@@ -13,7 +45,8 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       throw new Error('Resume data not provided');
     }
 
-    const { personalInfo, experience, education, skills, projects, certifications, languages, customSections } = resumeData;
+    const { personalInfo, experience, education, skills, projects, certifications, languages, links, customSections, template = 'classic' } = resumeData;
+    const colors = TEMPLATE_COLORS[template] || TEMPLATE_COLORS.classic;
     
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -52,15 +85,17 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     // ============ HEADER ============
     // Name
     pdf.setFont('times', 'bold');
-    pdf.setFontSize(20);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(personalInfo.fullName || 'Your Name', pageWidth / 2, y, { align: 'center' });
-    y += 24;
+    pdf.setFontSize(colors.headerAlign === 'left' ? 24 : 20);
+    pdf.setTextColor(...colors.textDark);
+    const nameX = colors.headerAlign === 'left' ? marginLeft : pageWidth / 2;
+    const nameAlign = colors.headerAlign === 'left' ? 'left' : 'center';
+    pdf.text(personalInfo.fullName || 'Your Name', nameX, y, { align: nameAlign });
+    y += colors.headerAlign === 'left' ? 28 : 24;
 
     // Contact Info Line
     pdf.setFont('times', 'normal');
     pdf.setFontSize(10);
-    pdf.setTextColor(51, 51, 51);
+    pdf.setTextColor(...colors.textMuted);
     
     const contactParts = [];
     if (personalInfo.email) contactParts.push(personalInfo.email);
@@ -68,7 +103,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     if (personalInfo.location) contactParts.push(personalInfo.location);
     
     if (contactParts.length > 0) {
-      pdf.text(contactParts.join('  |  '), pageWidth / 2, y, { align: 'center' });
+      pdf.text(contactParts.join('  |  '), nameX, y, { align: nameAlign });
       y += 14;
     }
 
@@ -88,29 +123,45 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     }
     
     if (linkParts.length > 0) {
-      pdf.setTextColor(0, 51, 153); // Blue for links
+      pdf.setTextColor(...colors.accent);
       const linksText = linkParts.map(l => l.text).join('  |  ');
-      const linksWidth = pdf.getTextWidth(linksText);
-      const linksX = (pageWidth - linksWidth) / 2;
       
-      let currentX = linksX;
-      linkParts.forEach((link, index) => {
-        const linkWidth = pdf.getTextWidth(link.text);
-        pdf.textWithLink(link.text, currentX, y, { url: link.url });
-        currentX += linkWidth;
-        if (index < linkParts.length - 1) {
-          pdf.setTextColor(51, 51, 51);
-          pdf.text('  |  ', currentX, y);
-          currentX += pdf.getTextWidth('  |  ');
-          pdf.setTextColor(0, 51, 153);
-        }
-      });
+      if (colors.headerAlign === 'left') {
+        let currentX = marginLeft;
+        linkParts.forEach((link, index) => {
+          const linkWidth = pdf.getTextWidth(link.text);
+          pdf.textWithLink(link.text, currentX, y, { url: link.url });
+          currentX += linkWidth;
+          if (index < linkParts.length - 1) {
+            pdf.setTextColor(...colors.textMuted);
+            pdf.text('  |  ', currentX, y);
+            currentX += pdf.getTextWidth('  |  ');
+            pdf.setTextColor(...colors.accent);
+          }
+        });
+      } else {
+        const linksWidth = pdf.getTextWidth(linksText);
+        const linksX = (pageWidth - linksWidth) / 2;
+        
+        let currentX = linksX;
+        linkParts.forEach((link, index) => {
+          const linkWidth = pdf.getTextWidth(link.text);
+          pdf.textWithLink(link.text, currentX, y, { url: link.url });
+          currentX += linkWidth;
+          if (index < linkParts.length - 1) {
+            pdf.setTextColor(...colors.textMuted);
+            pdf.text('  |  ', currentX, y);
+            currentX += pdf.getTextWidth('  |  ');
+            pdf.setTextColor(...colors.accent);
+          }
+        });
+      }
       y += 16;
     }
 
     // Divider line
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setLineWidth(0.5);
+    pdf.setDrawColor(...colors.textDark);
+    pdf.setLineWidth(template === 'modern' ? 1 : 0.5);
     pdf.line(marginLeft, y, pageWidth - marginRight, y);
     y += 16;
 
@@ -120,13 +171,13 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
       pdf.text('PROFESSIONAL SUMMARY', marginLeft, y);
       y += 14;
       
       pdf.setFont('times', 'normal');
       pdf.setFontSize(10);
-      pdf.setTextColor(51, 51, 51);
+      pdf.setTextColor(...colors.text);
       const summaryLines = wrapText(normalizeText(personalInfo.summary), contentWidth, 10);
       summaryLines.forEach(line => {
         checkNewPage();
@@ -142,7 +193,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
       pdf.text('PROFESSIONAL EXPERIENCE', marginLeft, y);
       y += 14;
 
@@ -152,7 +203,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Job Title and Date on same line
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(...colors.textDark);
         pdf.text(exp.position || '', marginLeft, y);
         
         const dateText = `${exp.startDate || ''} – ${exp.current ? 'Present' : exp.endDate || ''}`;
@@ -163,7 +214,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Company and Location
         pdf.setFont('times', 'italic');
         pdf.setFontSize(10);
-        pdf.setTextColor(51, 51, 51);
+        pdf.setTextColor(...colors.textMuted);
         const companyLocation = [exp.company, exp.location].filter(Boolean).join(', ');
         pdf.text(companyLocation, marginLeft, y);
         y += 14;
@@ -172,6 +223,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (exp.bullets && exp.bullets.length > 0) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
+          pdf.setTextColor(...colors.text);
           exp.bullets.forEach(bullet => {
             if (bullet && bullet.trim()) {
               const normalizedBullet = normalizeText(bullet);
@@ -202,7 +254,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
       pdf.text('EDUCATION', marginLeft, y);
       y += 14;
 
@@ -212,7 +264,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Degree and Date
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(...colors.textDark);
         pdf.text(edu.degree || '', marginLeft, y);
         
         const eduDateText = `${edu.startDate || ''} – ${edu.endDate || ''}`;
@@ -223,7 +275,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // School, Location, GPA
         pdf.setFont('times', 'normal');
         pdf.setFontSize(10);
-        pdf.setTextColor(51, 51, 51);
+        pdf.setTextColor(...colors.textMuted);
         let schoolInfo = [edu.school, edu.location].filter(Boolean).join(', ');
         if (edu.gpa) schoolInfo += ` | GPA: ${edu.gpa}`;
         pdf.text(schoolInfo, marginLeft, y);
@@ -240,13 +292,13 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
       pdf.text('SKILLS', marginLeft, y);
       y += 14;
       
       pdf.setFont('times', 'normal');
       pdf.setFontSize(10);
-      pdf.setTextColor(51, 51, 51);
+      pdf.setTextColor(...colors.text);
       
       const skillsText = skills.map(s => s.name).filter(Boolean).join('  •  ');
       const skillsLines = wrapText(skillsText, contentWidth, 10);
@@ -264,7 +316,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
       pdf.text('PROJECTS', marginLeft, y);
       y += 14;
 
@@ -274,14 +326,14 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Project Name
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(...colors.textDark);
         pdf.text(project.name || '', marginLeft, y);
         
         // Project URL as clickable link
         if (project.url) {
           const nameWidth = pdf.getTextWidth(project.name + '  ');
           pdf.setFont('times', 'normal');
-          pdf.setTextColor(0, 51, 153);
+          pdf.setTextColor(...colors.accent);
           const projectUrl = project.url.startsWith('http') ? project.url : `https://${project.url}`;
           pdf.textWithLink(project.url, marginLeft + nameWidth, y, { url: projectUrl });
         }
@@ -291,7 +343,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (project.description) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
-          pdf.setTextColor(51, 51, 51);
+          pdf.setTextColor(...colors.text);
           const descLines = wrapText(normalizeText(project.description), contentWidth, 10);
           descLines.forEach(line => {
             checkNewPage();
@@ -304,7 +356,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (project.technologies && project.technologies.length > 0) {
           pdf.setFont('times', 'italic');
           pdf.setFontSize(9);
-          pdf.setTextColor(102, 102, 102);
+          pdf.setTextColor(...colors.textMuted);
           const techText = 'Technologies: ' + project.technologies.join(', ');
           const techLines = wrapText(techText, contentWidth, 9);
           techLines.forEach(line => {
@@ -325,7 +377,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
       pdf.text('CERTIFICATIONS', marginLeft, y);
       y += 14;
 
@@ -334,7 +386,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(...colors.textDark);
         pdf.text(cert.name || '', marginLeft, y);
         
         if (cert.date) {
@@ -346,7 +398,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (cert.issuer) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(9);
-          pdf.setTextColor(51, 51, 51);
+          pdf.setTextColor(...colors.textMuted);
           pdf.text(cert.issuer, marginLeft, y);
           y += 11;
         }
@@ -354,7 +406,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (cert.url) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(9);
-          pdf.setTextColor(0, 51, 153);
+          pdf.setTextColor(...colors.accent);
           const certUrl = cert.url.startsWith('http') ? cert.url : `https://${cert.url}`;
           pdf.textWithLink('View Certificate', marginLeft, y, { url: certUrl });
           y += 11;
@@ -371,13 +423,13 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
       pdf.text('LANGUAGES', marginLeft, y);
       y += 14;
       
       pdf.setFont('times', 'normal');
       pdf.setFontSize(10);
-      pdf.setTextColor(51, 51, 51);
+      pdf.setTextColor(...colors.text);
       
       const langText = languages.map(l => l.level ? `${l.name} (${l.level})` : l.name).filter(Boolean).join('  •  ');
       const langLines = wrapText(langText, contentWidth, 10);
@@ -389,6 +441,35 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       y += 8;
     }
 
+    // ============ LINKS ============
+    if (links && links.length > 0) {
+      checkNewPage(40);
+      
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.text('LINKS', marginLeft, y);
+      y += 14;
+      
+      links.forEach((link, linkIndex) => {
+        checkNewPage(15);
+        
+        pdf.setFont('times', 'bold');
+        pdf.setFontSize(10);
+        pdf.setTextColor(...colors.textDark);
+        const labelText = link.label + ': ';
+        pdf.text(labelText, marginLeft, y);
+        
+        const labelWidth = pdf.getTextWidth(labelText);
+        pdf.setFont('times', 'normal');
+        pdf.setTextColor(...colors.accent);
+        const linkUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
+        pdf.textWithLink(link.url, marginLeft + labelWidth, y, { url: linkUrl });
+        y += 14;
+      });
+      y += 8;
+    }
+
     // ============ CUSTOM SECTIONS ============
     if (customSections && customSections.length > 0) {
       customSections.forEach(section => {
@@ -396,14 +477,14 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         
         pdf.setFont('times', 'bold');
         pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
         pdf.text((section.title || 'ADDITIONAL').toUpperCase(), marginLeft, y);
         y += 14;
         
         if (section.content) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
-          pdf.setTextColor(51, 51, 51);
+          pdf.setTextColor(...colors.text);
           const contentLines = wrapText(normalizeText(section.content), contentWidth, 10);
           contentLines.forEach(line => {
             checkNewPage();
@@ -415,7 +496,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (section.items && section.items.length > 0) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
-          pdf.setTextColor(51, 51, 51);
+          pdf.setTextColor(...colors.text);
           section.items.forEach(item => {
             const itemText = typeof item === 'string' ? item : item.text || item.name || '';
             if (itemText) {

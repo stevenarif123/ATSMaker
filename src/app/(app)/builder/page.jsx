@@ -13,7 +13,8 @@ import SkillsSection from '../../../components/sections/SkillsSection';
 import ProjectsSection from '../../../components/sections/ProjectsSection';
 import CertificationsSection from '../../../components/sections/CertificationsSection';
 import LanguagesSection from '../../../components/sections/LanguagesSection';
-import ResumePreview from '../../../components/ResumePreview';
+import LinksSection from '../../../components/sections/LinksSection';
+import ResumePreview, { RESUME_TEMPLATES } from '../../../components/ResumePreview';
 import OfflineIndicator from '../../../components/OfflineIndicator';
 
 export default function Builder() {
@@ -22,6 +23,9 @@ export default function Builder() {
   const [isExporting, setIsExporting] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('classic');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState(50);
   
   const resumeData = useResumeStore();
 
@@ -52,7 +56,9 @@ export default function Builder() {
         projects: resumeData.projects,
         certifications: resumeData.certifications || [],
         languages: resumeData.languages || [],
-        customSections: resumeData.customSections || []
+        links: resumeData.links || [],
+        customSections: resumeData.customSections || [],
+        template: selectedTemplate
       });
     } catch (error) {
       console.error('PDF export failed:', error);
@@ -134,6 +140,11 @@ export default function Builder() {
     { id: 'languages', label: 'Languages', icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+      </svg>
+    )},
+    { id: 'links', label: 'Links', icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
       </svg>
     )}
   ];
@@ -220,7 +231,7 @@ export default function Builder() {
       <main className="container-center py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Editor Panel */}
-          <div className={`flex-1 ${showPreview ? 'hidden lg:block' : 'block'}`}>
+          <div className={`flex-1 min-w-0 ${showPreview ? 'hidden lg:block' : 'block'}`}>
             <div className="card">
               {/* Tabs */}
               <div className="border-b border-slate-200 px-4 pt-4">
@@ -229,7 +240,7 @@ export default function Builder() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap rounded-t-lg transition-all duration-200 border-b-2 -mb-px ${
+                      className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-all duration-200 border-b-2 -mb-px ${
                         activeTab === tab.id 
                           ? 'text-blue-600 border-blue-600 bg-blue-50/50' 
                           : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-50'
@@ -273,6 +284,9 @@ export default function Builder() {
                   {activeTab === 'languages' && (
                     <LanguagesSection languages={resumeData.languages || []} />
                   )}
+                  {activeTab === 'links' && (
+                    <LinksSection links={resumeData.links || []} />
+                  )}
                 </div>
               </div>
             </div>
@@ -293,24 +307,97 @@ export default function Builder() {
           </div>
 
           {/* Preview Panel */}
-          <div className={`lg:w-[420px] xl:w-[480px] flex-shrink-0 ${showPreview ? 'block' : 'hidden lg:block'}`}>
-            <div className="lg:sticky lg:top-24">
+          <div className={`lg:w-[40%] flex-shrink-0 ${showPreview ? 'block' : 'hidden lg:block'}`}>
+            <div>
               <div className="card">
-                <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between gap-3">
                   <h2 className="font-semibold text-slate-900">Live Preview</h2>
-                  <button
-                    onClick={() => setShowPreview(false)}
-                    className="lg:hidden btn btn-ghost btn-sm btn-icon"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Zoom Controls */}
+                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg px-2 py-1">
+                      <button
+                        onClick={() => setPreviewZoom(Math.max(25, previewZoom - 10))}
+                        className="p-1 text-slate-500 hover:text-slate-700 disabled:opacity-50"
+                        disabled={previewZoom <= 25}
+                        title="Zoom Out"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span className="text-xs font-medium text-slate-600 w-10 text-center">{previewZoom}%</span>
+                      <button
+                        onClick={() => setPreviewZoom(Math.min(100, previewZoom + 10))}
+                        className="p-1 text-slate-500 hover:text-slate-700 disabled:opacity-50"
+                        disabled={previewZoom >= 100}
+                        title="Zoom In"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    {/* Template Selector */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+                        className="btn btn-outline btn-sm"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                        <span className="hidden sm:inline">Template</span>
+                      </button>
+                      
+                      {showTemplateSelector && (
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                          <div className="p-2">
+                            <p className="text-xs font-medium text-slate-500 uppercase px-2 py-1 mb-1">Choose Template</p>
+                            {RESUME_TEMPLATES.map((template) => (
+                              <button
+                                key={template.id}
+                                onClick={() => {
+                                  setSelectedTemplate(template.id);
+                                  setShowTemplateSelector(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                                  selectedTemplate === template.id
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'hover:bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                <div className="font-medium text-sm">{template.name}</div>
+                                <div className="text-xs text-slate-500">{template.description}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowPreview(false)}
+                      className="lg:hidden btn btn-ghost btn-sm btn-icon"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="p-4 bg-slate-100">
+                <div className="p-3 bg-slate-100">
                   <div className="bg-white rounded-lg shadow-sm overflow-auto max-h-[calc(100vh-200px)] custom-scrollbar">
-                    <div className="transform origin-top scale-[0.6] sm:scale-75 lg:scale-[0.55] xl:scale-[0.6]" style={{ width: '166.67%', marginBottom: '-40%' }}>
-                      <ResumePreview id="resume-preview" data={resumeData} />
+                    <div 
+                      className="transform origin-top-left transition-transform duration-200" 
+                      style={{ 
+                        transform: `scale(${previewZoom / 100})`,
+                        width: `${10000 / previewZoom}%`,
+                        marginBottom: `${-100 + previewZoom}%`
+                      }}
+                    >
+                      <ResumePreview id="resume-preview" data={resumeData} template={selectedTemplate} />
                     </div>
                   </div>
                 </div>

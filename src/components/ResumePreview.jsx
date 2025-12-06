@@ -1,16 +1,75 @@
-export default function ResumePreview({ id, data }) {
-  const { personalInfo, experience, education, skills, projects, certifications, languages, customSections } = data;
+export default function ResumePreview({ id, data, template = 'classic' }) {
+  const { personalInfo, experience, education, skills, projects, certifications, languages, links, customSections } = data;
 
-  // ATS-friendly colors using standard hex values
-  const colors = {
-    text: '#333333',
-    textDark: '#000000',
-    textMuted: '#555555',
-    textLight: '#666666',
-    border: '#cccccc',
-    borderDark: '#000000',
-    accent: '#003399',
+  // Template configurations with more visual differences
+  const templates = {
+    classic: {
+      name: 'Classic',
+      text: '#333333',
+      textDark: '#000000',
+      textMuted: '#555555',
+      textLight: '#666666',
+      border: '#cccccc',
+      borderDark: '#000000',
+      accent: '#003399',
+      headerStyle: 'centered',
+      sectionStyle: 'underline', // underline, box, none
+      bulletStyle: 'disc', // disc, dash, arrow
+      nameSize: '22px',
+      sectionTitleSize: '11px',
+      borderWidth: '1px',
+    },
+    modern: {
+      name: 'Modern',
+      text: '#374151',
+      textDark: '#111827',
+      textMuted: '#6b7280',
+      textLight: '#9ca3af',
+      border: '#e5e7eb',
+      borderDark: '#2563eb',
+      accent: '#2563eb',
+      headerStyle: 'left',
+      sectionStyle: 'colorbar', // colored left bar
+      bulletStyle: 'arrow',
+      nameSize: '26px',
+      sectionTitleSize: '12px',
+      borderWidth: '2px',
+    },
+    professional: {
+      name: 'Professional',
+      text: '#1f2937',
+      textDark: '#111827',
+      textMuted: '#4b5563',
+      textLight: '#6b7280',
+      border: '#d1d5db',
+      borderDark: '#1f2937',
+      accent: '#059669',
+      headerStyle: 'centered',
+      sectionStyle: 'box', // boxed section titles
+      bulletStyle: 'dash',
+      nameSize: '24px',
+      sectionTitleSize: '11px',
+      borderWidth: '1px',
+    },
+    minimal: {
+      name: 'Minimal',
+      text: '#18181b',
+      textDark: '#09090b',
+      textMuted: '#52525b',
+      textLight: '#71717a',
+      border: '#e4e4e7',
+      borderDark: '#a1a1aa',
+      accent: '#18181b',
+      headerStyle: 'left',
+      sectionStyle: 'none', // no decoration
+      bulletStyle: 'disc',
+      nameSize: '20px',
+      sectionTitleSize: '10px',
+      borderWidth: '0.5px',
+    },
   };
+
+  const colors = templates[template] || templates.classic;
 
   // Helper to format URL for display
   const formatUrl = (url, type) => {
@@ -27,6 +86,75 @@ export default function ResumePreview({ id, data }) {
     return text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
   };
 
+  const isLeftHeader = colors.headerStyle === 'left';
+
+  // Bullet character based on style
+  const getBulletChar = () => {
+    switch (colors.bulletStyle) {
+      case 'arrow': return '▸';
+      case 'dash': return '–';
+      default: return '•';
+    }
+  };
+
+  // Section title style based on template - avoid mixing shorthand and non-shorthand properties
+  const getSectionTitleStyle = () => {
+    const baseStyle = {
+      fontSize: colors.sectionTitleSize,
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      letterSpacing: '1px',
+      marginBottom: '8px',
+    };
+
+    switch (colors.sectionStyle) {
+      case 'colorbar':
+        return {
+          ...baseStyle,
+          color: colors.accent,
+          borderLeft: `3px solid ${colors.accent}`,
+          paddingTop: '0',
+          paddingRight: '0',
+          paddingBottom: '4px',
+          paddingLeft: '8px',
+          borderBottom: 'none',
+        };
+      case 'box':
+        return {
+          ...baseStyle,
+          color: colors.textDark,
+          backgroundColor: '#f3f4f6',
+          paddingTop: '6px',
+          paddingRight: '10px',
+          paddingBottom: '6px',
+          paddingLeft: '10px',
+          borderRadius: '2px',
+          borderBottom: 'none',
+        };
+      case 'none':
+        return {
+          ...baseStyle,
+          color: colors.textDark,
+          borderBottom: 'none',
+          marginBottom: '6px',
+          paddingTop: '0',
+          paddingRight: '0',
+          paddingBottom: '0',
+          paddingLeft: '0',
+        };
+      default: // underline
+        return {
+          ...baseStyle,
+          color: colors.textDark,
+          borderBottom: `${colors.borderWidth} solid ${colors.border}`,
+          paddingTop: '0',
+          paddingRight: '0',
+          paddingBottom: '4px',
+          paddingLeft: '0',
+        };
+    }
+  };
+
   return (
     <div 
       id={id} 
@@ -40,9 +168,20 @@ export default function ResumePreview({ id, data }) {
         lineHeight: '1.4'
       }}
     >
-      {/* Header - Centered */}
-      <header style={{ textAlign: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: `1px solid ${colors.borderDark}` }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: colors.textDark, marginBottom: '8px', letterSpacing: '0.5px' }}>
+      {/* Header */}
+      <header style={{ 
+        textAlign: isLeftHeader ? 'left' : 'center', 
+        marginBottom: '16px', 
+        paddingBottom: '12px', 
+        borderBottom: `${colors.borderWidth} solid ${colors.borderDark}` 
+      }}>
+        <h1 style={{ 
+          fontSize: colors.nameSize, 
+          fontWeight: 'bold', 
+          color: colors.textDark, 
+          marginBottom: '8px', 
+          letterSpacing: template === 'modern' ? '1px' : '0.5px' 
+        }}>
           {personalInfo.fullName || 'Your Name'}
         </h1>
         
@@ -79,7 +218,7 @@ export default function ResumePreview({ id, data }) {
       {/* Summary */}
       {personalInfo.summary && (
         <section style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '6px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+          <h2 style={getSectionTitleStyle()}>
             Professional Summary
           </h2>
           <p style={{ fontSize: '10px', lineHeight: '1.5', color: colors.text, textAlign: 'left' }}>{normalizeText(personalInfo.summary)}</p>
@@ -89,7 +228,7 @@ export default function ResumePreview({ id, data }) {
       {/* Experience */}
       {experience.length > 0 && (
         <section style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '8px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+          <h2 style={getSectionTitleStyle()}>
             Professional Experience
           </h2>
           <div>
@@ -122,7 +261,7 @@ export default function ResumePreview({ id, data }) {
       {/* Education */}
       {education.length > 0 && (
         <section style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '8px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+          <h2 style={getSectionTitleStyle()}>
             Education
           </h2>
           <div>
@@ -147,14 +286,14 @@ export default function ResumePreview({ id, data }) {
       {/* Skills */}
       {skills.length > 0 && (
         <section style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '6px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+          <h2 style={getSectionTitleStyle()}>
             Skills
           </h2>
           <div style={{ fontSize: '10px', color: colors.text, lineHeight: '1.5' }}>
             {skills.map((skill, index) => (
               <span key={skill.id}>
                 {skill.name}
-                {index < skills.length - 1 && <span style={{ color: colors.textLight }}> • </span>}
+                {index < skills.length - 1 && <span style={{ color: colors.textLight }}> {getBulletChar()} </span>}
               </span>
             ))}
           </div>
@@ -164,7 +303,7 @@ export default function ResumePreview({ id, data }) {
       {/* Projects */}
       {projects && projects.length > 0 && (
         <section style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '8px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+          <h2 style={getSectionTitleStyle()}>
             Projects
           </h2>
           <div>
@@ -196,7 +335,7 @@ export default function ResumePreview({ id, data }) {
       {/* Certifications */}
       {certifications && certifications.length > 0 && (
         <section style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '6px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+          <h2 style={getSectionTitleStyle()}>
             Certifications
           </h2>
           <div>
@@ -228,15 +367,37 @@ export default function ResumePreview({ id, data }) {
       {/* Languages */}
       {languages && languages.length > 0 && (
         <section style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '6px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+          <h2 style={getSectionTitleStyle()}>
             Languages
           </h2>
           <div style={{ fontSize: '10px', color: colors.text, lineHeight: '1.5' }}>
             {languages.map((lang, index) => (
               <span key={lang.id || index}>
                 {lang.name}{lang.level && ` (${lang.level})`}
-                {index < languages.length - 1 && <span style={{ color: colors.textLight }}> • </span>}
+                {index < languages.length - 1 && <span style={{ color: colors.textLight }}> {getBulletChar()} </span>}
               </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Links */}
+      {links && links.length > 0 && (
+        <section style={{ marginBottom: '16px' }}>
+          <h2 style={getSectionTitleStyle()}>
+            Links
+          </h2>
+          <div style={{ fontSize: '10px', color: colors.text, lineHeight: '1.6' }}>
+            {links.map((link, index) => (
+              <div key={link.id || index} style={{ marginBottom: index < links.length - 1 ? '3px' : '0' }}>
+                <span style={{ fontWeight: 'bold', color: colors.textDark }}>{link.label}: </span>
+                <a 
+                  href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                  style={{ color: colors.accent, textDecoration: 'none' }}
+                >
+                  {link.url}
+                </a>
+              </div>
             ))}
           </div>
         </section>
@@ -246,7 +407,7 @@ export default function ResumePreview({ id, data }) {
       {customSections && customSections.length > 0 && (
         customSections.map((section, sectionIndex) => (
           <section key={section.id || sectionIndex} style={{ marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: colors.textDark, marginBottom: '6px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '3px' }}>
+            <h2 style={getSectionTitleStyle()}>
               {section.title}
             </h2>
             {section.content && (
@@ -269,3 +430,11 @@ export default function ResumePreview({ id, data }) {
     </div>
   );
 }
+
+// Export template options for use in other components
+export const RESUME_TEMPLATES = [
+  { id: 'classic', name: 'Classic', description: 'Traditional centered header, underline sections' },
+  { id: 'modern', name: 'Modern', description: 'Left-aligned, blue color bar sections, arrow bullets' },
+  { id: 'professional', name: 'Professional', description: 'Centered header, boxed sections, dash bullets' },
+  { id: 'minimal', name: 'Minimal', description: 'Clean left-aligned, no section borders' },
+];

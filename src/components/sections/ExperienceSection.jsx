@@ -74,15 +74,14 @@ function SortableExperienceItem({ experience, onEdit, onDelete }) {
           
           {/* Bullets Preview */}
           {experience.bullets && experience.bullets.length > 0 && (
-            <ul className="mt-3 space-y-1">
+            <ul className="mt-3 space-y-1 list-disc list-inside marker:text-slate-400">
               {experience.bullets.slice(0, 2).map((bullet, index) => (
-                <li key={index} className="text-sm text-slate-600 flex items-start gap-2">
-                  <span className="text-slate-400 mt-1.5">•</span>
-                  <span className="line-clamp-1">{bullet}</span>
+                <li key={index} className="text-sm text-slate-600">
+                  <span className="line-clamp-1 inline">{bullet}</span>
                 </li>
               ))}
               {experience.bullets.length > 2 && (
-                <li className="text-xs text-slate-400">+{experience.bullets.length - 2} more</li>
+                <li className="text-xs text-slate-400 list-none">+{experience.bullets.length - 2} more</li>
               )}
             </ul>
           )}
