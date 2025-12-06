@@ -92,6 +92,51 @@ export const useResumeStore = create(
       deleteProject: (id) => set((state) => ({
         projects: state.projects.filter(project => project.id !== id)
       })),
+
+      // Certifications
+      addCertification: (certification) => set((state) => ({
+        certifications: [...state.certifications, { ...certification, id: Date.now().toString() }]
+      })),
+      
+      updateCertification: (id, updates) => set((state) => ({
+        certifications: state.certifications.map(cert => 
+          cert.id === id ? { ...cert, ...updates } : cert
+        )
+      })),
+      
+      deleteCertification: (id) => set((state) => ({
+        certifications: state.certifications.filter(cert => cert.id !== id)
+      })),
+
+      // Languages
+      addLanguage: (language) => set((state) => ({
+        languages: [...state.languages, { ...language, id: Date.now().toString() }]
+      })),
+      
+      updateLanguage: (id, updates) => set((state) => ({
+        languages: state.languages.map(lang => 
+          lang.id === id ? { ...lang, ...updates } : lang
+        )
+      })),
+      
+      deleteLanguage: (id) => set((state) => ({
+        languages: state.languages.filter(lang => lang.id !== id)
+      })),
+
+      // Custom Sections
+      addCustomSection: (section) => set((state) => ({
+        customSections: [...state.customSections, { ...section, id: Date.now().toString() }]
+      })),
+      
+      updateCustomSection: (id, updates) => set((state) => ({
+        customSections: state.customSections.map(section => 
+          section.id === id ? { ...section, ...updates } : section
+        )
+      })),
+      
+      deleteCustomSection: (id) => set((state) => ({
+        customSections: state.customSections.filter(section => section.id !== id)
+      })),
       
       // Import/Export
       importResume: (data) => set(data),

@@ -7,38 +7,39 @@ export default function PersonalInfoSection({ data }) {
     defaultValues: data
   });
 
-  // Auto-save on input change
   const handleInputChange = (field, value) => {
     updatePersonalInfo(field, value);
   };
 
   return (
-    <form className="space-y-4">
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Full Name *</span>
-        </label>
+    <form className="space-y-6">
+      {/* Section Header */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-slate-900 mb-1">Personal Information</h2>
+        <p className="text-sm text-slate-500">Add your contact details and professional summary</p>
+      </div>
+
+      {/* Full Name */}
+      <div className="form-group">
+        <label className="form-label form-label-required">Full Name</label>
         <input
           type="text"
-          className="input input-bordered w-full"
+          className={`form-input ${errors.fullName ? 'form-input-error' : ''}`}
+          placeholder="John Doe"
           {...register('fullName', { required: 'Full name is required' })}
           onChange={(e) => handleInputChange('fullName', e.target.value)}
         />
-        {errors.fullName && (
-          <label className="label">
-            <span className="label-text-alt text-error">{errors.fullName.message}</span>
-          </label>
-        )}
+        {errors.fullName && <p className="form-error">{errors.fullName.message}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Email *</span>
-          </label>
+      {/* Email & Phone */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="form-group">
+          <label className="form-label form-label-required">Email</label>
           <input
             type="email"
-            className="input input-bordered w-full"
+            className={`form-input ${errors.email ? 'form-input-error' : ''}`}
+            placeholder="john@example.com"
             {...register('email', { 
               required: 'Email is required',
               pattern: {
@@ -48,70 +49,53 @@ export default function PersonalInfoSection({ data }) {
             })}
             onChange={(e) => handleInputChange('email', e.target.value)}
           />
-          {errors.email && (
-            <label className="label">
-              <span className="label-text-alt text-error">{errors.email.message}</span>
-            </label>
-          )}
+          {errors.email && <p className="form-error">{errors.email.message}</p>}
         </div>
 
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Phone *</span>
-          </label>
+        <div className="form-group">
+          <label className="form-label form-label-required">Phone</label>
           <input
             type="tel"
-            className="input input-bordered w-full"
+            className={`form-input ${errors.phone ? 'form-input-error' : ''}`}
+            placeholder="+1 (555) 123-4567"
             {...register('phone', { required: 'Phone is required' })}
             onChange={(e) => handleInputChange('phone', e.target.value)}
           />
-          {errors.phone && (
-            <label className="label">
-              <span className="label-text-alt text-error">{errors.phone.message}</span>
-            </label>
-          )}
+          {errors.phone && <p className="form-error">{errors.phone.message}</p>}
         </div>
       </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Location *</span>
-        </label>
+      {/* Location */}
+      <div className="form-group">
+        <label className="form-label form-label-required">Location</label>
         <input
           type="text"
-          className="input input-bordered w-full"
-          placeholder="City, State"
+          className={`form-input ${errors.location ? 'form-input-error' : ''}`}
+          placeholder="San Francisco, CA"
           {...register('location', { required: 'Location is required' })}
           onChange={(e) => handleInputChange('location', e.target.value)}
         />
-        {errors.location && (
-          <label className="label">
-            <span className="label-text-alt text-error">{errors.location.message}</span>
-          </label>
-        )}
+        {errors.location && <p className="form-error">{errors.location.message}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Website</span>
-          </label>
+      {/* Website & LinkedIn */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="form-group">
+          <label className="form-label">Website</label>
           <input
             type="url"
-            className="input input-bordered w-full"
+            className="form-input"
             placeholder="https://yourwebsite.com"
             {...register('website')}
             onChange={(e) => handleInputChange('website', e.target.value)}
           />
         </div>
 
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">LinkedIn</span>
-          </label>
+        <div className="form-group">
+          <label className="form-label">LinkedIn</label>
           <input
             type="url"
-            className="input input-bordered w-full"
+            className="form-input"
             placeholder="https://linkedin.com/in/yourprofile"
             {...register('linkedin')}
             onChange={(e) => handleInputChange('linkedin', e.target.value)}
@@ -119,29 +103,28 @@ export default function PersonalInfoSection({ data }) {
         </div>
       </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">GitHub</span>
-        </label>
+      {/* GitHub */}
+      <div className="form-group">
+        <label className="form-label">GitHub</label>
         <input
           type="url"
-          className="input input-bordered w-full"
+          className="form-input"
           placeholder="https://github.com/yourusername"
           {...register('github')}
           onChange={(e) => handleInputChange('github', e.target.value)}
         />
       </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Professional Summary</span>
-        </label>
+      {/* Professional Summary */}
+      <div className="form-group">
+        <label className="form-label">Professional Summary</label>
         <textarea
-          className="textarea textarea-bordered h-32"
-          placeholder="Write a brief professional summary highlighting your key qualifications and career goals..."
+          className="form-textarea h-32"
+          placeholder="Write a brief professional summary highlighting your key qualifications, experience, and career goals. Keep it concise and impactful."
           {...register('summary')}
           onChange={(e) => handleInputChange('summary', e.target.value)}
         ></textarea>
+        <p className="form-hint">A strong summary helps recruiters quickly understand your value proposition</p>
       </div>
     </form>
   );
