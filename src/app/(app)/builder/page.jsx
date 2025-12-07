@@ -25,6 +25,7 @@ import CoverLetterForm from '../../../components/sections/CoverLetterForm';
 import ResumePreview, { RESUME_TEMPLATES } from '../../../components/ResumePreview';
 import CoverLetterPreview, { COVER_LETTER_TEMPLATES } from '../../../components/CoverLetterPreview';
 import OfflineIndicator from '../../../components/OfflineIndicator';
+import VersionManager from '../../../components/versioning/VersionManager';
 import ATSScorePanel from '../../../components/ATSScorePanel';
 
 export default function Builder() {
@@ -33,6 +34,7 @@ export default function Builder() {
   const [isExporting, setIsExporting] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showVersionManager, setShowVersionManager] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [selectedCoverLetterTemplate, setSelectedCoverLetterTemplate] = useState('formal');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -47,6 +49,12 @@ export default function Builder() {
   const [showATSPanel, setShowATSPanel] = useState(true);
   
   const resumeData = useResumeStore();
+  const activeVersionInfo = useResumeStore((s) => s.getActiveVersionInfo());
+  const activeResume = useResumeStore((s) => s.getActiveResume());
+  const selectedTemplate = activeResume?.template || 'classic';
+  const setSelectedTemplate = (template) => {
+    resumeData.setActiveResume({ template });
+  };
   
   // Calculate ATS score with memoization
   const atsScore = useMemo(() => {
@@ -286,6 +294,14 @@ export default function Builder() {
         <div className="container-center py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+             <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+               </svg>
+             </div>
+             <span className="font-bold text-slate-900 hidden sm:inline">ATS Maker</span>
+            </Link>
             <div className="flex items-center gap-3">
               <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -309,6 +325,16 @@ export default function Builder() {
               </div>
             </div>
 
+            {/* Active Version Info */}
+            <div className="flex items-center gap-3">
+             <div className="text-right hidden sm:block">
+               <p className="text-sm font-medium text-slate-900">{activeVersionInfo.name}</p>
+               <p className="text-xs text-slate-500">
+                 Updated {new Date(activeVersionInfo.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+               </p>
+             </div>
+            </div>
+
             {/* Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Mobile Preview Toggle */}
@@ -323,7 +349,41 @@ export default function Builder() {
                 <span className="hidden sm:inline">Preview</span>
               </button>
 
-              <button 
+              {/* Version Management Buttons */}
+              <button
+                onClick={() => resumeData.createVersion()}
+                className="btn btn-ghost btn-sm"
+                title="Create new version"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">New</span>
+              </button>
+
+              <button
+                onClick={() => resumeData.duplicateVersion()}
+                className="btn btn-ghost btn-sm"
+                title="Duplicate current version"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span className="hidden sm:inline">Duplicate</span>
+              </button>
+
+              <button
+                onClick={() => setShowVersionManager(true)}
+                className="btn btn-outline btn-sm"
+                title="Manage versions"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <span className="hidden sm:inline">Versions</span>
+              </button>
+
+              <button
                 onClick={() => setShowImportDialog(true)}
                 className="btn btn-ghost btn-sm"
                 title="Import JSON"
@@ -762,7 +822,7 @@ export default function Builder() {
               />
             </div>
             <div className="modal-footer">
-              <button 
+              <button
                 onClick={() => setShowImportDialog(false)}
                 className="btn btn-outline"
               >
@@ -771,6 +831,11 @@ export default function Builder() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Version Manager Modal */}
+      {showVersionManager && (
+        <VersionManager onClose={() => setShowVersionManager(false)} />
       )}
     </div>
   );
