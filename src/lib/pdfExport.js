@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { TEMPLATE_COLORS, normalizeText, generateFilename } from './templateMetadata.js';
 import { TEMPLATE_CONFIGS } from './templateConfig';
 
 // Helper to normalize text - remove extra newlines and whitespace
@@ -511,8 +512,9 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       });
     }
 
-    // Save PDF
-    pdf.save(filename);
+    // Save PDF with generated filename
+    const generatedFilename = generateFilename(personalInfo.fullName, '', 'pdf');
+    pdf.save(generatedFilename);
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);
