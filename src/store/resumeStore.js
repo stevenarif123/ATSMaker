@@ -23,6 +23,8 @@ const resumeTemplate = {
   template: 'classic',
   createdAt: '',
   updatedAt: ''
+  template: 'classic'
+  jobDescription: ''
 };
 
 const createDefaultResume = (name = 'Resume') => ({
@@ -369,6 +371,25 @@ export const useResumeStore = create(
         });
       },
 
+      addCustomSection: (section) => set((state) => ({
+        customSections: [...state.customSections, { ...section, id: Date.now().toString() }]
+      })),
+      
+      updateCustomSection: (id, updates) => set((state) => ({
+        customSections: state.customSections.map(section => 
+          section.id === id ? { ...section, ...updates } : section
+        )
+      })),
+      
+      deleteCustomSection: (id) => set((state) => ({
+        customSections: state.customSections.filter(section => section.id !== id)
+      })),
+      
+      // Template
+      setTemplate: (template) => set({ template }),
+      // Job Description
+      setJobDescription: (description) => set({ jobDescription: description }),
+      
       // Import/Export
       importResume: (data) => {
         get().setActiveResume(data);
@@ -464,6 +485,17 @@ export const useResumeStore = create(
       partialize: (state) => ({
         versions: state.versions,
         activeResumeId: state.activeResumeId
+        personalInfo: state.personalInfo,
+        experience: state.experience,
+        education: state.education,
+        skills: state.skills,
+        projects: state.projects,
+        certifications: state.certifications,
+        languages: state.languages,
+        links: state.links,
+        customSections: state.customSections,
+        template: state.template
+        jobDescription: state.jobDescription
       })
     }
   )
