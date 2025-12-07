@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import PersonalInfoForm from './components/forms/PersonalInfoForm';
-import ResumeStoreDemo from './components/ResumeStoreDemo';
+// import PersonalInfoForm from './components/forms/PersonalInfoForm';
+// import ResumeStoreDemo from './components/ResumeStoreDemo';
 import './App.css';
 
 function App() {
@@ -51,8 +51,9 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {activeTab === 'demo' && <ResumeStoreDemo />}
-          {activeTab === 'form' && <PersonalInfoForm />}
+          {/* {activeTab === 'demo' && <ResumeStoreDemo />} */}
+          {/* {activeTab === 'form' && <PersonalInfoForm />} */}
+          <p>Legacy demo unavailable. Use the builder app at /builder</p>
         </div>
       </main>
 

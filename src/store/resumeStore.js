@@ -20,6 +20,7 @@ const initialState = {
   languages: [],
   links: [],
   customSections: [],
+  template: 'classic'
   jobDescription: ''
 };
 
@@ -155,6 +156,8 @@ export const useResumeStore = create(
         customSections: state.customSections.filter(section => section.id !== id)
       })),
       
+      // Template
+      setTemplate: (template) => set({ template }),
       // Job Description
       setJobDescription: (description) => set({ jobDescription: description }),
       
@@ -179,6 +182,7 @@ export const useResumeStore = create(
         languages: state.languages,
         links: state.links,
         customSections: state.customSections,
+        template: state.template
         jobDescription: state.jobDescription
       })
     }
