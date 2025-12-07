@@ -21,6 +21,7 @@ const initialState = {
   links: [],
   customSections: [],
   template: 'classic'
+  jobDescription: ''
 };
 
 export const useResumeStore = create(
@@ -157,6 +158,8 @@ export const useResumeStore = create(
       
       // Template
       setTemplate: (template) => set({ template }),
+      // Job Description
+      setJobDescription: (description) => set({ jobDescription: description }),
       
       // Import/Export
       importResume: (data) => set(data),
@@ -180,6 +183,7 @@ export const useResumeStore = create(
         links: state.links,
         customSections: state.customSections,
         template: state.template
+        jobDescription: state.jobDescription
       })
     }
   )

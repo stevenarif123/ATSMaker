@@ -538,3 +538,249 @@ export const exportToJSON = (data, filename = 'resume.json') => {
     throw new Error('Failed to export JSON');
   }
 };
+
+// Cover Letter PDF Export
+const COVER_LETTER_TEMPLATE_STYLES = {
+  formal: {
+    headerAlign: 'left',
+    margin: 72,
+    lineHeight: 1.5,
+    fontFamily: 'times'
+  },
+  modern: {
+    headerAlign: 'left',
+    margin: 60,
+    lineHeight: 1.4,
+    fontFamily: 'helvetica'
+  },
+  minimal: {
+    headerAlign: 'left',
+    margin: 50,
+    lineHeight: 1.3,
+    fontFamily: 'courier'
+  }
+};
+
+export const exportCoverLetterToPDF = async (filename = 'cover-letter.pdf', coverLetterData, personalInfo = {}) => {
+  try {
+    if (!coverLetterData) {
+      throw new Error('Cover letter data not provided');
+    }
+
+    const template = coverLetterData.templateId || 'formal';
+    const templateConfig = COVER_LETTER_TEMPLATE_STYLES[template];
+    
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'letter'
+    });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = templateConfig.margin;
+    const contentWidth = pageWidth - (margin * 2);
+    
+    let y = margin;
+    
+    const checkNewPage = (neededHeight = 20) => {
+      if (y + neededHeight > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+        return true;
+      }
+      return false;
+    };
+
+    const wrapText = (text, maxWidth, fontSize) => {
+      pdf.setFontSize(fontSize);
+      return pdf.splitTextToSize(text, maxWidth);
+    };
+
+    // Header - Sender's Information
+    pdf.setFont(templateConfig.fontFamily, 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(0, 0, 0);
+
+    if (personalInfo.fullName) {
+      pdf.setFont(templateConfig.fontFamily, 'bold');
+      pdf.text(personalInfo.fullName, margin, y);
+      y += 12;
+    }
+
+    pdf.setFont(templateConfig.fontFamily, 'normal');
+    const contactInfo = [];
+    if (personalInfo.email) contactInfo.push(personalInfo.email);
+    if (personalInfo.phone) contactInfo.push(personalInfo.phone);
+    if (personalInfo.location) contactInfo.push(personalInfo.location);
+    
+    if (contactInfo.length > 0) {
+      pdf.setFontSize(9);
+      pdf.text(contactInfo.join(' | '), margin, y);
+      y += 10;
+    }
+
+    y += 12;
+
+    // Date
+    if (coverLetterData.date) {
+      const dateObj = new Date(coverLetterData.date);
+      const dateStr = dateObj.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      pdf.setFontSize(10);
+      pdf.text(dateStr, margin, y);
+      y += 14;
+    }
+
+    y += 12;
+
+    // Recipient Information
+    pdf.setFontSize(10);
+    if (coverLetterData.recipientName) {
+      pdf.text(coverLetterData.recipientName, margin, y);
+      y += 12;
+    }
+    if (coverLetterData.company) {
+      pdf.text(coverLetterData.company, margin, y);
+      y += 12;
+    }
+
+    y += 12;
+
+    // Salutation
+    pdf.setFontSize(10);
+    if (coverLetterData.salutation) {
+      pdf.text(coverLetterData.salutation, margin, y);
+      y += 14;
+    }
+
+    y += 8;
+
+    // Body Paragraphs
+    pdf.setFontSize(10);
+    const lineSpacing = templateConfig.lineHeight * 12;
+    
+    if (coverLetterData.bodyParagraphs && coverLetterData.bodyParagraphs.length > 0) {
+      coverLetterData.bodyParagraphs.forEach((paragraph, idx) => {
+        if (paragraph.text && paragraph.text.trim()) {
+          checkNewPage(lineSpacing * 3);
+          const paragraphLines = wrapText(normalizeText(paragraph.text), contentWidth, 10);
+          
+          paragraphLines.forEach((line) => {
+            checkNewPage(lineSpacing);
+            pdf.text(line, margin, y);
+            y += lineSpacing;
+          });
+          
+          if (idx < coverLetterData.bodyParagraphs.length - 1) {
+            y += 8;
+          }
+        }
+      });
+    }
+
+    y += 16;
+
+    // Closing
+    pdf.setFontSize(10);
+    if (coverLetterData.closing) {
+      pdf.text(coverLetterData.closing, margin, y);
+      y += 24;
+    }
+
+    // Signature line
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, margin + 80, y);
+    y += 16;
+
+    // Signature name
+    if (coverLetterData.signature) {
+      pdf.text(coverLetterData.signature, margin, y);
+    }
+
+    // Save PDF
+    pdf.save(filename);
+    return true;
+  } catch (error) {
+    console.error('Error generating cover letter PDF:', error);
+    throw new Error('Failed to generate PDF: ' + error.message);
+  }
+};
+
+// Cover Letter DOCX Export (using basic HTML approach)
+export const exportCoverLetterToDOCX = (filename = 'cover-letter.docx', coverLetterData, personalInfo = {}) => {
+  try {
+    if (!coverLetterData) {
+      throw new Error('Cover letter data not provided');
+    }
+
+    const html = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='UTF-8'>
+          <style>
+            body { font-family: Calibri, sans-serif; margin: 1in; line-height: 1.15; }
+            .header { text-align: left; margin-bottom: 0.5in; }
+            .recipient { margin: 0.5in 0; }
+            .body { margin: 0.5in 0; line-height: 1.5; }
+            .body p { margin-bottom: 0.5in; text-align: justify; }
+            .closing { margin-top: 1in; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <strong>${personalInfo.fullName || ''}</strong><br/>
+            ${personalInfo.email ? personalInfo.email : ''} ${personalInfo.phone ? '| ' + personalInfo.phone : ''} ${personalInfo.location ? '| ' + personalInfo.location : ''}
+          </div>
+
+          <div style="margin: 0.5in 0;">
+            ${coverLetterData.date ? new Date(coverLetterData.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+          </div>
+
+          <div class="recipient">
+            ${coverLetterData.recipientName ? coverLetterData.recipientName + '<br/>' : ''}
+            ${coverLetterData.company ? coverLetterData.company : ''}
+          </div>
+
+          <div style="margin: 0.5in 0;">
+            ${coverLetterData.salutation || 'Dear Hiring Manager'}
+          </div>
+
+          <div class="body">
+            ${coverLetterData.bodyParagraphs && coverLetterData.bodyParagraphs.length > 0 
+              ? coverLetterData.bodyParagraphs
+                  .filter(p => p.text && p.text.trim())
+                  .map(p => `<p>${p.text}</p>`)
+                  .join('')
+              : '<p></p>'
+            }
+          </div>
+
+          <div class="closing">
+            <div style="margin-bottom: 1in;">
+              ${coverLetterData.closing || 'Sincerely'}
+            </div>
+            <div style="height: 1in;"></div>
+            <div>${coverLetterData.signature || ''}</div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error) {
+    console.error('Error exporting cover letter DOCX:', error);
+    throw new Error('Failed to export DOCX: ' + error.message);
+  }
+};
