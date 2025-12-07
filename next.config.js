@@ -1,21 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // PWA configuration
-  async headers() {
-    return [
-      {
-        source: '/sw.js',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
-          },
-        ],
-      },
-    ];
+  // Enable static export for deployment as static files
+  output: 'export',
+  // Disable image optimization for static export
+  images: {
+    unoptimized: true,
   },
-  // Enable standalone output for better deployment
-  output: 'standalone',
+  // Set base path for deployment in subfolder
+  basePath: '/atsmaker',
 };
 
 export default nextConfig;
