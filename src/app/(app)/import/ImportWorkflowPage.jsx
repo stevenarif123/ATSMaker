@@ -14,7 +14,8 @@ export function ImportWorkflowPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [lastFileMeta, setLastFileMeta] = useState(null)
 
-  const { resume, mergeSections } = useResumeStore()
+  const getActiveResume = useResumeStore((s) => s.getActiveResume)
+  const mergeSectionsToActiveResume = useResumeStore((s) => s.mergeSectionsToActiveResume)
   const parseFile = useOfflineParser()
   const form = useForm({ defaultValues: { sections: [] } })
   const sections = form.watch('sections') ?? []
@@ -46,7 +47,7 @@ export function ImportWorkflowPage() {
       setDrawerOpen(true)
       return
     }
-    mergeSections(accepted)
+    mergeSectionsToActiveResume(accepted)
     setDrawerOpen(false)
     setStatus('merged')
   }
@@ -79,7 +80,7 @@ export function ImportWorkflowPage() {
 
       <div className="import-page__content">
         <Dropzone status={status} progress={progress} error={status === 'error' ? error : ''} onFiles={handleFiles} lastFileMeta={lastFileMeta} />
-        <SummaryPanel resume={resume} insights={insights} status={status} />
+        <SummaryPanel resume={getActiveResume()} insights={insights} status={status} />
       </div>
 
       <ReviewDrawer form={form} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onSubmit={handleMerge} />
