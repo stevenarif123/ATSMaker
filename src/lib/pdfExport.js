@@ -1,5 +1,35 @@
 import jsPDF from 'jspdf';
 import { TEMPLATE_COLORS, normalizeText, generateFilename } from './templateMetadata.js';
+import { TEMPLATE_CONFIGS } from './templateConfig';
+
+// Helper to normalize text - remove extra newlines and whitespace
+const normalizeText = (text) => {
+  if (!text) return '';
+  return text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+};
+
+// Convert hex color to RGB array
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? [
+    parseInt(result[1], 16),
+    parseInt(result[2], 16),
+    parseInt(result[3], 16)
+  ] : [0, 0, 0];
+};
+
+// Convert template config to colors object for PDF generation
+const getTemplateColors = (templateId) => {
+  const template = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS.classic;
+  return {
+    text: hexToRgb(template.text),
+    textDark: hexToRgb(template.textDark),
+    textMuted: hexToRgb(template.textMuted),
+    accent: hexToRgb(template.accentColor),
+    headerAlign: template.headerStyle === 'centered' ? 'center' : 'left',
+    layout: template.layout
+  };
+};
 
 // ATS-friendly PDF export using native text rendering (small file size, selectable text)
 export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) => {
@@ -9,7 +39,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     }
 
     const { personalInfo, experience, education, skills, projects, certifications, languages, links, customSections, template = 'classic' } = resumeData;
-    const colors = TEMPLATE_COLORS[template] || TEMPLATE_COLORS.classic;
+    const colors = getTemplateColors(template);
     
     const pdf = new jsPDF({
       orientation: 'portrait',

@@ -18,6 +18,9 @@ import ProjectsSection from '../../../components/sections/ProjectsSection';
 import CertificationsSection from '../../../components/sections/CertificationsSection';
 import LanguagesSection from '../../../components/sections/LanguagesSection';
 import LinksSection from '../../../components/sections/LinksSection';
+import ResumePreview from '../../../components/ResumePreview';
+import OfflineIndicator from '../../../components/OfflineIndicator';
+import TemplateSelector from '../../../components/TemplateSelector';
 import CoverLetterForm from '../../../components/sections/CoverLetterForm';
 import ResumePreview, { RESUME_TEMPLATES } from '../../../components/ResumePreview';
 import CoverLetterPreview, { COVER_LETTER_TEMPLATES } from '../../../components/CoverLetterPreview';
@@ -39,6 +42,7 @@ export default function Builder() {
   const [showCoverLetterExportMenu, setShowCoverLetterExportMenu] = useState(false);
   
   const resumeData = useResumeStore();
+  const selectedTemplate = resumeData.template || 'classic';
   const coverLetterStore = useCoverLetterStore();
   const [showATSPanel, setShowATSPanel] = useState(true);
   
@@ -599,6 +603,10 @@ export default function Builder() {
                     </div>
 
                     {/* Template Selector */}
+                    <TemplateSelector
+                      selectedTemplate={selectedTemplate}
+                      onSelectTemplate={(templateId) => resumeData.setTemplate(templateId)}
+                    />
                     <div className="relative">
                       <button
                         onClick={() => setShowTemplateSelector(!showTemplateSelector)}
