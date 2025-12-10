@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
 
 export default function VersionManager({ onClose }) {
@@ -8,13 +8,17 @@ export default function VersionManager({ onClose }) {
   const [editingName, setEditingName] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
-  const versions = useResumeStore((s) => s.getVersions());
+  // Access state directly to avoid infinite loops
+  const versionsMap = useResumeStore((s) => s.versions);
   const activeResumeId = useResumeStore((s) => s.activeResumeId);
   const switchVersion = useResumeStore((s) => s.switchVersion);
   const renameVersion = useResumeStore((s) => s.renameVersion);
   const deleteVersion = useResumeStore((s) => s.deleteVersion);
   const duplicateVersion = useResumeStore((s) => s.duplicateVersion);
   const createVersion = useResumeStore((s) => s.createVersion);
+
+  // Convert versions object to array using useMemo
+  const versions = useMemo(() => Object.values(versionsMap || {}), [versionsMap]);
 
   const handleRename = (id, currentName) => {
     setEditingId(id);

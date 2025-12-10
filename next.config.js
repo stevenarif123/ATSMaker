@@ -6,7 +6,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Set base path for deployment in subfolder
+  // Set base path for deployment in subfolder (only for production)
+  // For local development, access at http://localhost:3000/atsmaker
+  // For Hostinger deployment in /atsmaker folder
   basePath: '/atsmaker',
 };
 

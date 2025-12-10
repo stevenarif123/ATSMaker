@@ -2,12 +2,6 @@ import jsPDF from 'jspdf';
 import { TEMPLATE_COLORS, normalizeText, generateFilename } from './templateMetadata.js';
 import { TEMPLATE_CONFIGS } from './templateConfig';
 
-// Helper to normalize text - remove extra newlines and whitespace
-const normalizeText = (text) => {
-  if (!text) return '';
-  return text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
-};
-
 // Convert hex color to RGB array
 const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);

@@ -22,8 +22,7 @@ const resumeTemplate = {
   customSections: [],
   template: 'classic',
   createdAt: '',
-  updatedAt: ''
-  template: 'classic'
+  updatedAt: '',
   jobDescription: ''
 };
 
@@ -392,7 +391,55 @@ export const useResumeStore = create(
       
       // Import/Export
       importResume: (data) => {
-        get().setActiveResume(data);
+        if (!data) return;
+        
+        // Handle if data is wrapped in a 'state' object (some zustand exports)
+        const importData = data.state || data;
+        
+        // Handle legacy flat format (pre-versioning) - has personalInfo at root level
+        if (importData.personalInfo && !importData.versions) {
+          const legacyData = {
+            personalInfo: importData.personalInfo || resumeTemplate.personalInfo,
+            experience: importData.experience || [],
+            education: importData.education || [],
+            skills: importData.skills || [],
+            projects: importData.projects || [],
+            certifications: importData.certifications || [],
+            languages: importData.languages || [],
+            links: importData.links || [],
+            customSections: importData.customSections || [],
+            template: importData.template || 'classic',
+            jobDescription: importData.jobDescription || ''
+          };
+          get().setActiveResume(legacyData);
+          return;
+        }
+        
+        // Handle versioned format - import into active resume
+        if (importData.versions) {
+          // Get the first version from imported data
+          const versionIds = Object.keys(importData.versions);
+          if (versionIds.length > 0) {
+            const firstVersion = importData.versions[versionIds[0]];
+            get().setActiveResume({
+              personalInfo: firstVersion.personalInfo || resumeTemplate.personalInfo,
+              experience: firstVersion.experience || [],
+              education: firstVersion.education || [],
+              skills: firstVersion.skills || [],
+              projects: firstVersion.projects || [],
+              certifications: firstVersion.certifications || [],
+              languages: firstVersion.languages || [],
+              links: firstVersion.links || [],
+              customSections: firstVersion.customSections || [],
+              template: firstVersion.template || 'classic',
+              jobDescription: firstVersion.jobDescription || ''
+            });
+          }
+          return;
+        }
+        
+        // Fallback - try to use data as-is
+        get().setActiveResume(importData);
       },
 
       exportResume: () => get().getActiveResume(),
@@ -484,7 +531,7 @@ export const useResumeStore = create(
       },
       partialize: (state) => ({
         versions: state.versions,
-        activeResumeId: state.activeResumeId
+        activeResumeId: state.activeResumeId,
         personalInfo: state.personalInfo,
         experience: state.experience,
         education: state.education,
@@ -494,7 +541,7 @@ export const useResumeStore = create(
         languages: state.languages,
         links: state.links,
         customSections: state.customSections,
-        template: state.template
+        template: state.template,
         jobDescription: state.jobDescription
       })
     }

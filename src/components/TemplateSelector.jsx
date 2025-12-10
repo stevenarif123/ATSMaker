@@ -38,7 +38,7 @@ export default function TemplateSelector({ selectedTemplate, onSelectTemplate })
       <button
         onClick={() => setShowSelector(!showSelector)}
         onKeyDown={handleKeyDown}
-        className="btn btn-outline btn-sm"
+        className="btn btn-ghost btn-sm"
         title="Choose template"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,16 +49,16 @@ export default function TemplateSelector({ selectedTemplate, onSelectTemplate })
 
       {showSelector && (
         <div 
-          className="absolute right-0 top-full mt-2 w-96 max-h-96 bg-white rounded-lg shadow-xl border border-slate-200 z-50 flex flex-col"
+          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl z-50 flex flex-col animate-slide-up"
           onKeyDown={handleKeyDown}
           role="menu"
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <div className="px-4 py-3 flex items-center justify-between border-b border-slate-200/50">
             <h3 className="font-semibold text-slate-900">Resume Templates</h3>
             <button
               onClick={() => setShowSelector(false)}
-              className="text-slate-500 hover:text-slate-700"
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-colors"
               aria-label="Close"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -67,16 +67,16 @@ export default function TemplateSelector({ selectedTemplate, onSelectTemplate })
             </button>
           </div>
 
-          {/* Category Tabs */}
-          <div className="flex gap-1 px-3 pt-3 border-b border-slate-200 overflow-x-auto">
+          {/* Category Tabs - horizontal pills */}
+          <div className="flex flex-wrap gap-1.5 px-3 py-3 border-b border-slate-200/50">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-3 py-2 text-xs font-medium whitespace-nowrap rounded-t-md transition-colors ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
                   selectedCategory === category
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
                 role="tab"
               >
@@ -85,58 +85,34 @@ export default function TemplateSelector({ selectedTemplate, onSelectTemplate })
             ))}
           </div>
 
-          {/* Templates Grid */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+          {/* Templates List */}
+          <div className="max-h-72 overflow-y-auto custom-scrollbar px-3 py-3 space-y-1.5">
             {TEMPLATE_CATEGORIES[selectedCategory]?.map((template) => (
               <button
                 key={template.id}
                 onClick={() => handleSelectTemplate(template.id)}
-                className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
                   selectedTemplate === template.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-blue-50 ring-2 ring-blue-500 shadow-sm'
+                    : 'bg-slate-50 hover:bg-slate-100 hover:shadow-sm'
                 }`}
                 role="menuitem"
               >
-                {/* Template Preview */}
-                <div className="mb-2 h-20 rounded border border-slate-300 bg-white overflow-hidden flex items-center justify-center">
-                  <div className="text-center px-2 w-full">
-                    {/* Accent color indicator */}
-                    <div 
-                      className="w-2 h-2 rounded-full mx-auto mb-2"
-                      style={{ backgroundColor: template.accentColor }}
-                    ></div>
-                    {/* Layout indicator */}
-                    <div className="flex justify-center gap-1 mb-2">
-                      {template.layout === 'single-column' && (
-                        <div className="flex gap-1">
-                          <div className="w-1 h-3 bg-slate-300 rounded"></div>
-                        </div>
-                      )}
-                      {template.layout === 'sidebar' && (
-                        <div className="flex gap-1">
-                          <div className="w-2 h-3 rounded" style={{ backgroundColor: template.accentColor }}></div>
-                          <div className="w-1 h-3 bg-slate-300 rounded"></div>
-                        </div>
-                      )}
-                      {template.layout === 'two-column' && (
-                        <div className="flex gap-1">
-                          <div className="w-1.5 h-3 bg-slate-300 rounded"></div>
-                          <div className="w-1.5 h-3 bg-slate-300 rounded"></div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-600 line-clamp-2">{template.description}</div>
+                <div className="flex items-center gap-3">
+                  {/* Color indicator */}
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+                    style={{ backgroundColor: template.accentColor }}
+                  ></div>
+                  {/* Template Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-slate-900">{template.name}</div>
+                    <div className="text-xs text-slate-500 truncate">{template.description}</div>
                   </div>
-                </div>
-                {/* Template Info */}
-                <div>
-                  <div className="font-medium text-sm text-slate-900">{template.name}</div>
-                  <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                    <span className="px-1.5 py-0.5 bg-slate-100 rounded text-xs">
-                      {template.layout === 'single-column' ? '📄' : template.layout === 'sidebar' ? '📋' : '📑'} {template.layout === 'single-column' ? 'Single' : template.layout === 'sidebar' ? 'Sidebar' : 'Two Col'}
-                    </span>
-                  </div>
+                  {/* Layout badge */}
+                  <span className="text-lg flex-shrink-0">
+                    {template.layout === 'single-column' ? '📄' : template.layout === 'sidebar' ? '📋' : '📑'}
+                  </span>
                 </div>
               </button>
             ))}
