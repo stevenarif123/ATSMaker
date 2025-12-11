@@ -96,10 +96,83 @@ export function hydrateSectionsFromText(text) {
 }
 
 export function hydrateSectionsFromJson(payload) {
+  // Handle legacy format where personalInfo, experience, etc. are at root level
+  const normalizedPayload = normalizeLegacyPayload(payload)
+  
   return SECTION_TEMPLATES.map((template) => {
-    const data = mapJsonValue(payload?.[template.id], template)
+    const data = mapJsonValue(normalizedPayload?.[template.id], template)
     return materializeSection(template, data)
   })
+}
+
+/**
+ * Normalize legacy JSON format (personalInfo at root) to section-based format
+ */
+function normalizeLegacyPayload(payload) {
+  if (!payload) return {}
+  
+  // If payload already has sections in expected format, return as-is
+  if (payload.summary && typeof payload.summary === 'object') {
+    return payload
+  }
+  
+  // Handle legacy format with personalInfo, experience, etc. at root level
+  const normalized = {}
+  
+  // Summary section from personalInfo
+  if (payload.personalInfo) {
+    normalized.summary = {
+      headline: payload.personalInfo.fullName || '',
+      overview: payload.personalInfo.summary || ''
+    }
+  }
+  
+  // Experience section - use first experience entry
+  if (payload.experience && Array.isArray(payload.experience) && payload.experience.length > 0) {
+    const exp = payload.experience[0]
+    normalized.experience = {
+      role: exp.position || '',
+      company: exp.company || '',
+      timeline: formatDateRange(exp.startDate, exp.endDate, exp.current),
+      impact: Array.isArray(exp.bullets) ? exp.bullets.join('\n') : ''
+    }
+  }
+  
+  // Education section - use first education entry
+  if (payload.education && Array.isArray(payload.education) && payload.education.length > 0) {
+    const edu = payload.education[0]
+    normalized.education = {
+      school: edu.school || '',
+      degree: edu.degree || '',
+      graduation: edu.endDate || ''
+    }
+  }
+  
+  // Skills section
+  if (payload.skills && Array.isArray(payload.skills)) {
+    const skillNames = payload.skills.map(s => typeof s === 'string' ? s : s.name).filter(Boolean)
+    normalized.skills = {
+      skillsList: skillNames.slice(0, 8),
+      tools: skillNames.slice(8)
+    }
+  }
+  
+  // Projects section - use first project
+  if (payload.projects && Array.isArray(payload.projects) && payload.projects.length > 0) {
+    const proj = payload.projects[0]
+    normalized.projects = {
+      project: proj.description || proj.name || ''
+    }
+  }
+  
+  return normalized
+}
+
+function formatDateRange(start, end, current) {
+  const startStr = start || ''
+  const endStr = current ? 'Present' : (end || '')
+  if (!startStr && !endStr) return ''
+  return `${startStr} - ${endStr}`
 }
 
 function mapJsonValue(source, template) {

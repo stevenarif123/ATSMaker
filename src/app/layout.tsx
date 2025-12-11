@@ -8,14 +8,14 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'ATS Maker - Free ATS Style CV Builder',
   description: 'Create professional ATS-friendly resumes with our free online CV builder',
-  manifest: '/manifest.json',
+  manifest: '/atsmaker/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/atsmaker/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/atsmaker/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/atsmaker/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   other: {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-title': 'ATS Maker',
     'application-name': 'ATS Maker',
     'msapplication-TileColor': '#3b82f6',
-    'msapplication-config': '/browserconfig.xml',
+    'msapplication-config': '/atsmaker/browserconfig.xml',
   },
 }
 

@@ -1,9 +1,12 @@
 import { useCallback } from 'react'
 import { hydrateSectionsFromJson, hydrateSectionsFromText } from '../utils/sectionTemplates.js'
+import { useResumeStore } from '../../../../store/resumeStore.js'
 
 export const ACCEPTED_EXTENSIONS = ['pdf', 'docx', 'txt', 'json']
 
 export function useOfflineParser() {
+  const importResume = useResumeStore((s) => s.importResume)
+  
   return useCallback(async ({ file, onProgress }) => {
     const extension = getExtension(file)
     if (!ACCEPTED_EXTENSIONS.includes(extension)) {
@@ -25,14 +28,43 @@ export function useOfflineParser() {
 
     let sections = []
     if (extension === 'json') {
-      sections = buildFromJson(cleaned)
+      // Try to detect legacy resume format and import directly
+      const parsed = safeParseJson(cleaned)
+      if (parsed && isLegacyResumeFormat(parsed)) {
+        // Import directly into the resume store for full compatibility
+        importResume(parsed)
+        // Still return sections for the review workflow
+        sections = buildFromJson(cleaned)
+      } else {
+        sections = buildFromJson(cleaned)
+      }
     } else {
       sections = hydrateSectionsFromText(cleaned)
     }
 
     onProgress?.(95)
     return sections
-  }, [])
+  }, [importResume])
+}
+
+/**
+ * Check if the JSON is in legacy resume format (has personalInfo at root level)
+ */
+function isLegacyResumeFormat(payload) {
+  return payload && (
+    payload.personalInfo !== undefined ||
+    (Array.isArray(payload.experience) && payload.experience.length > 0) ||
+    (Array.isArray(payload.education) && payload.education.length > 0) ||
+    (Array.isArray(payload.skills) && payload.skills.length > 0)
+  )
+}
+
+function safeParseJson(raw) {
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
 }
 
 function getExtension(file) {

@@ -43,3 +43,11 @@ next-env.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Markdown files
+CHANGELOG.md
+README-IMPLEMENTATION.md
+DEPLOYMENT.md
+DEPLOYMENT-FIX.md
+
+deploy.bat

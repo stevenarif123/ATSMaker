@@ -1,7 +1,16 @@
 import { TEMPLATE_CONFIGS } from '../lib/templateConfig';
 
 export default function ResumePreview({ id, data, template = 'classic' }) {
-  const { personalInfo, experience, education, skills, projects, certifications, languages, links, customSections } = data;
+  // Safely destructure data with defaults
+  const personalInfo = data?.personalInfo || {};
+  const experience = data?.experience || [];
+  const education = data?.education || [];
+  const skills = data?.skills || [];
+  const projects = data?.projects || [];
+  const certifications = data?.certifications || [];
+  const languages = data?.languages || [];
+  const links = data?.links || [];
+  const customSections = data?.customSections || [];
 
   const colors = TEMPLATE_CONFIGS[template] || TEMPLATE_CONFIGS.classic;
   const layout = colors.layout || 'single-column';

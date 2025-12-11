@@ -252,7 +252,7 @@
 
   /* Text utilities */
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent;
+    @apply text-blue-600;
   }
 
   /* Empty State */

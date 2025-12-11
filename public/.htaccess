@@ -1,0 +1,15 @@
+# Enable RewriteEngine
+RewriteEngine On
+RewriteBase /atsmaker/
+
+# Basic options
+Options +FollowSymLinks -MultiViews -Indexes
+
+# Serve .html files for clean URLs
+# Check if .html version exists and serve it
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}/atsmaker/$1.html -f
+RewriteRule ^(.*)/?$ $1.html [L]
+
+# Error pages
+ErrorDocument 404 /atsmaker/404.html

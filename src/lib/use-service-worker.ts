@@ -24,7 +24,7 @@ export function useServiceWorker() {
       }
       
       navigator.serviceWorker
-        .register('/sw.js')
+        .register('/atsmaker/sw.js')
         .then((reg) => {
           console.log('Service worker registered:', reg)
           setRegistration(reg)

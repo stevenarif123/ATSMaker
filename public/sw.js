@@ -1,6 +1,6 @@
-const CACHE_NAME = 'ats-maker-v2';
+const CACHE_NAME = 'ats-maker-v3';
 const urlsToCache = [
-  '/manifest.json',
+  '/atsmaker/manifest.json',
 ];
 
 // Install event - cache resources
@@ -28,6 +28,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.includes('webpack-hmr') ||
     url.pathname.includes('_rsc') ||
     url.pathname.includes('turbopack') ||
+    url.pathname.includes('.txt') ||
     url.search.includes('_rsc') ||
     event.request.method !== 'GET'
   ) {

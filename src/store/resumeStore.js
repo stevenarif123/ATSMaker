@@ -490,6 +490,7 @@ export const useResumeStore = create(
     {
       name: 'resume-storage',
       storage: createJSONStorage(() => localStorage),
+      version: 1,
       migrate: (persistedState, version) => {
         if (!persistedState) {
           return {
@@ -529,21 +530,22 @@ export const useResumeStore = create(
 
         return persistedState;
       },
+      // Only persist versions and activeResumeId - getters cannot be serialized
       partialize: (state) => ({
         versions: state.versions,
-        activeResumeId: state.activeResumeId,
-        personalInfo: state.personalInfo,
-        experience: state.experience,
-        education: state.education,
-        skills: state.skills,
-        projects: state.projects,
-        certifications: state.certifications,
-        languages: state.languages,
-        links: state.links,
-        customSections: state.customSections,
-        template: state.template,
-        jobDescription: state.jobDescription
-      })
+        activeResumeId: state.activeResumeId
+      }),
+      // Skip hydration initially, we'll hydrate manually on client
+      skipHydration: true,
+      // Ensure hydration happens correctly on client
+      onRehydrateStorage: () => (state) => {
+        console.log('Resume store rehydrated:', state?.versions ? Object.keys(state.versions).length + ' versions' : 'no data');
+      }
     }
   )
 );
+
+// Rehydrate on client side
+if (typeof window !== 'undefined') {
+  useResumeStore.persist.rehydrate();
+}

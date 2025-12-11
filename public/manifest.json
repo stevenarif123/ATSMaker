@@ -2,20 +2,20 @@
   "name": "ATS Maker - Free ATS Style CV Builder",
   "short_name": "ATS Maker",
   "description": "Create professional ATS-friendly resumes with our free online CV builder",
-  "start_url": "/",
+  "start_url": "/atsmaker/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/atsmaker/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/atsmaker/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -24,6 +24,6 @@
   "categories": ["productivity", "business"],
   "lang": "en",
   "dir": "ltr",
-  "scope": "/",
+  "scope": "/atsmaker/",
   "prefer_related_applications": false
 }

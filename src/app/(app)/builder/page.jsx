@@ -32,13 +32,14 @@ export default function Builder() {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(50);
   const [showATSPanel, setShowATSPanel] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   
   const resumeData = useResumeStore();
   
   // Access state directly instead of calling methods in selector to avoid infinite loops
   const activeResumeId = useResumeStore((s) => s.activeResumeId);
   const versions = useResumeStore((s) => s.versions);
-  const activeResume = versions[activeResumeId];
+  const activeResume = isHydrated ? versions[activeResumeId] : null;
   const activeVersionInfo = useMemo(() => ({
     id: activeResumeId,
     name: activeResume?.name || 'My Resume',
@@ -50,19 +51,26 @@ export default function Builder() {
     resumeData.setActiveResume({ template });
   };
   
+  // Hydration effect
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+  
   // Calculate ATS score with memoization
   const atsScore = useMemo(() => {
-    const score = calculateATSScore(resumeData, resumeData.jobDescription || '');
+    if (!isHydrated) return 0;
+    const score = calculateATSScore(activeResume || {}, activeResume?.jobDescription || '');
     return score.overallScore;
   }, [
-    resumeData.personalInfo,
-    resumeData.experience,
-    resumeData.education,
-    resumeData.skills,
-    resumeData.projects,
-    resumeData.certifications,
-    resumeData.languages,
-    resumeData.jobDescription
+    isHydrated,
+    activeResume?.personalInfo,
+    activeResume?.experience,
+    activeResume?.education,
+    activeResume?.skills,
+    activeResume?.projects,
+    activeResume?.certifications,
+    activeResume?.languages,
+    activeResume?.jobDescription
   ]);
   
   // Throttled job description handler
@@ -105,16 +113,16 @@ export default function Builder() {
     setIsExporting(true);
     try {
       const previewElement = document.getElementById('resume-preview');
-      await exportToPDF(previewElement, `${resumeData.personalInfo.fullName || 'resume'}.pdf`, {
-        personalInfo: resumeData.personalInfo,
-        experience: resumeData.experience,
-        education: resumeData.education,
-        skills: resumeData.skills,
-        projects: resumeData.projects,
-        certifications: resumeData.certifications || [],
-        languages: resumeData.languages || [],
-        links: resumeData.links || [],
-        customSections: resumeData.customSections || [],
+      await exportToPDF(previewElement, `${activeResume?.personalInfo?.fullName || 'resume'}.pdf`, {
+        personalInfo: activeResume?.personalInfo || {},
+        experience: activeResume?.experience || [],
+        education: activeResume?.education || [],
+        skills: activeResume?.skills || [],
+        projects: activeResume?.projects || [],
+        certifications: activeResume?.certifications || [],
+        languages: activeResume?.languages || [],
+        links: activeResume?.links || [],
+        customSections: activeResume?.customSections || [],
         template: selectedTemplate
       });
     } catch (error) {
@@ -128,16 +136,16 @@ export default function Builder() {
     setIsExporting(true);
     try {
       const previewElement = document.getElementById('resume-preview');
-      await exportToDOCX(previewElement, `${resumeData.personalInfo.fullName || 'resume'}.docx`, {
-        personalInfo: resumeData.personalInfo,
-        experience: resumeData.experience,
-        education: resumeData.education,
-        skills: resumeData.skills,
-        projects: resumeData.projects,
-        certifications: resumeData.certifications || [],
-        languages: resumeData.languages || [],
-        links: resumeData.links || [],
-        customSections: resumeData.customSections || [],
+      await exportToDOCX(previewElement, `${activeResume?.personalInfo?.fullName || 'resume'}.docx`, {
+        personalInfo: activeResume?.personalInfo || {},
+        experience: activeResume?.experience || [],
+        education: activeResume?.education || [],
+        skills: activeResume?.skills || [],
+        projects: activeResume?.projects || [],
+        certifications: activeResume?.certifications || [],
+        languages: activeResume?.languages || [],
+        links: activeResume?.links || [],
+        customSections: activeResume?.customSections || [],
         template: selectedTemplate
       });
     } catch (error) {
@@ -149,7 +157,7 @@ export default function Builder() {
 
   const handleExportJSON = () => {
     try {
-      exportToJSON(resumeData.exportResume(), `${resumeData.personalInfo.fullName || 'resume'}.json`);
+      exportToJSON(resumeData.exportResume(), `${activeResume?.personalInfo?.fullName || 'resume'}.json`);
     } catch (error) {
       console.error('JSON export failed:', error);
     }
@@ -180,7 +188,7 @@ export default function Builder() {
         throw new Error('No cover letter selected');
       }
       const filename = `${activeCoverLetter.company || 'cover-letter'}.pdf`;
-      await exportCoverLetterToPDF(filename, activeCoverLetter, resumeData.personalInfo);
+      await exportCoverLetterToPDF(filename, activeCoverLetter, activeResume?.personalInfo || {});
     } catch (error) {
       console.error('Cover letter PDF export failed:', error);
     } finally {
@@ -188,14 +196,14 @@ export default function Builder() {
     }
   };
 
-  const handleExportCoverLetterDOCX = () => {
+  const handleExportCoverLetterDOCX = async () => {
     try {
       const activeCoverLetter = coverLetterStore.getActiveCoverLetter();
       if (!activeCoverLetter) {
         throw new Error('No cover letter selected');
       }
       const filename = `${activeCoverLetter.company || 'cover-letter'}.docx`;
-      exportCoverLetterToDOCX(filename, activeCoverLetter, resumeData.personalInfo);
+      await exportCoverLetterToDOCX(filename, activeCoverLetter, activeResume?.personalInfo || {});
     } catch (error) {
       console.error('Cover letter DOCX export failed:', error);
     }
@@ -209,7 +217,7 @@ export default function Builder() {
       salutation: 'Dear Hiring Manager',
       bodyParagraphs: [{ text: '' }, { text: '' }, { text: '' }],
       closing: 'Sincerely',
-      signature: resumeData.personalInfo.fullName || '',
+      signature: activeResume?.personalInfo?.fullName || '',
       associatedResumeId: null,
       templateId: 'formal'
     };
@@ -221,10 +229,11 @@ export default function Builder() {
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = resumeData.experience.findIndex(exp => exp.id === active.id);
-      const newIndex = resumeData.experience.findIndex(exp => exp.id === over.id);
+      const experience = activeResume?.experience || [];
+      const oldIndex = experience.findIndex(exp => exp.id === active.id);
+      const newIndex = experience.findIndex(exp => exp.id === over.id);
       
-      const newOrder = arrayMove(resumeData.experience, oldIndex, newIndex);
+      const newOrder = arrayMove(experience, oldIndex, newIndex);
       resumeData.reorderExperience(newOrder);
     }
   };
@@ -284,7 +293,7 @@ export default function Builder() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-all">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -385,39 +394,40 @@ export default function Builder() {
               </button>
 
               <div className="relative export-dropdown-container">
-                <button
-                  onClick={handleExportPDF}
-                  disabled={isExporting}
-                  className="btn btn-primary btn-sm"
-                >
-                  {isExporting ? (
-                    <>
-                      <span className="spinner spinner-sm"></span>
-                      <span className="hidden sm:inline">Exporting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span className="hidden sm:inline">Export PDF</span>
-                    </>
-                  )}
-                </button>
-                
-                <button
-                  onClick={() => setShowExportDropdown(!showExportDropdown)}
-                  disabled={isExporting}
-                  className="btn btn-primary btn-sm px-2"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
+                <div className="flex">
+                  <button
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
+                    className="btn btn-primary btn-sm rounded-r-none"
+                  >
+                    {isExporting ? (
+                      <>
+                        <span className="spinner spinner-sm"></span>
+                        <span className="hidden sm:inline">Exporting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span className="hidden sm:inline">Export PDF</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowExportDropdown(!showExportDropdown)}
+                    disabled={isExporting}
+                    className="btn btn-primary btn-sm px-2 rounded-l-none border-l border-blue-400"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
 
-              {showExportDropdown && (
-                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl z-50 min-w-[140px] animate-slide-up">
+                {showExportDropdown && (
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 min-w-[160px] animate-slide-up" style={{ zIndex: 9999 }}>
                   <button
                     onClick={() => {
                       setShowExportDropdown(false);
@@ -446,6 +456,7 @@ export default function Builder() {
               )}
             </div>
           </div>
+        </div>
         </div>
       </header>
 
@@ -479,35 +490,35 @@ export default function Builder() {
               <div className="card-body min-h-[500px]">
                 <div className="animate-fade-in">
                   {activeTab === 'personal' && (
-                    <PersonalInfoSection data={resumeData.personalInfo} />
+                    <PersonalInfoSection data={activeResume?.personalInfo || {}} />
                   )}
                   {activeTab === 'experience' && (
                     <DndContext onDragEnd={handleDragEnd}>
                       <SortableContext 
-                        items={resumeData.experience.map(exp => exp.id)}
+                        items={(activeResume?.experience || []).map(exp => exp.id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        <ExperienceSection experience={resumeData.experience} />
+                        <ExperienceSection experience={activeResume?.experience || []} />
                       </SortableContext>
                     </DndContext>
                   )}
                   {activeTab === 'education' && (
-                    <EducationSection education={resumeData.education} />
+                    <EducationSection education={activeResume?.education || []} />
                   )}
                   {activeTab === 'skills' && (
-                    <SkillsSection skills={resumeData.skills} />
+                    <SkillsSection skills={activeResume?.skills || []} />
                   )}
                   {activeTab === 'projects' && (
-                    <ProjectsSection projects={resumeData.projects} />
+                    <ProjectsSection projects={activeResume?.projects || []} />
                   )}
                   {activeTab === 'certifications' && (
-                    <CertificationsSection certifications={resumeData.certifications || []} />
+                    <CertificationsSection certifications={activeResume?.certifications || []} />
                   )}
                   {activeTab === 'languages' && (
-                    <LanguagesSection languages={resumeData.languages || []} />
+                    <LanguagesSection languages={activeResume?.languages || []} />
                   )}
                   {activeTab === 'links' && (
-                    <LinksSection links={resumeData.links || []} />
+                    <LinksSection links={activeResume?.links || []} />
                   )}
                  </div>
                </div>
@@ -586,7 +597,7 @@ export default function Builder() {
                       marginBottom: `${-100 + previewZoom}%`
                     }}
                   >
-                    <ResumePreview id="resume-preview" data={resumeData} template={selectedTemplate} />
+                    <ResumePreview id="resume-preview" data={activeResume || {}} template={selectedTemplate} />
                   </div>
                 </div>
               </div>
@@ -604,9 +615,9 @@ export default function Builder() {
               <div className="flex items-center gap-3">
                 <h2 className="font-semibold text-slate-900">ATS Score Analysis</h2>
                 <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold shadow-sm ${
-                  atsScore >= 80 ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700' :
-                  atsScore >= 60 ? 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700' :
-                  'bg-gradient-to-r from-red-100 to-rose-100 text-red-700'
+                  atsScore >= 80 ? 'bg-green-100 text-green-700' :
+                  atsScore >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
                 }`}>
                   {atsScore}/100
                 </div>
@@ -623,8 +634,8 @@ export default function Builder() {
             {showATSPanel && (
               <div className="border-t border-slate-200/50 p-4 animate-fade-in">
                 <ATSScorePanel
-                  resume={resumeData}
-                  jobDescription={resumeData.jobDescription || ''}
+                  resume={activeResume || {}}
+                  jobDescription={activeResume?.jobDescription || ''}
                   onJobDescriptionChange={handleJobDescriptionChange}
                 />
               </div>

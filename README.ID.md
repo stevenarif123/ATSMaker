@@ -4,6 +4,19 @@
 
 ATS Resume Maker adalah aplikasi web yang dirancang untuk membantu Anda membuat resume yang optimal untuk sistem Applicant Tracking (ATS). Dibangun dengan teknologi modern, aplikasi ini menyediakan pengalaman pengguna yang luar biasa dengan editor real-time, multiple template pilihan, dan fitur-fitur canggih untuk memaksimalkan peluang Anda dalam proses rekrutmen.
 
+🔗 **[Coba Demo Live →](https://stevenarif.my.id/atsmaker/)**
+
+## 📸 Screenshots
+
+### Landing Page
+![Landing Page](screenshoot/landingpage.jpg)
+
+### Resume Builder
+![Resume Builder](screenshoot/builder.jpg)
+
+### Cover Letter
+![Cover Letter](screenshoot/coverletter.jpg)
+
 ## 🚀 Fitur Utama
 
 ### Editor & Preview
@@ -32,6 +45,7 @@ ATS Resume Maker adalah aplikasi web yang dirancang untuk membantu Anda membuat 
 
 ### Export & Import
 - **PDF Export**: Hasilkan PDF ATS-friendly berukuran kecil (50-150KB) dengan text selectable
+- **DOCX Export**: Export resume dan cover letter ke dokumen Word yang terformat dengan baik
 - **JSON Export**: Backup data resume Anda dalam format JSON
 - **JSON Import**: Restore atau pindahkan resume dari file JSON sebelumnya
 - **Clickable Links**: Semua URL di PDF dapat diklik langsung
@@ -42,6 +56,9 @@ ATS Resume Maker adalah aplikasi web yang dirancang untuk membantu Anda membuat 
 - **Offline Support**: Bekerja 100% offline tanpa koneksi internet
 - **PWA Ready**: Dapat diinstal sebagai aplikasi standalone
 - **Responsive Design**: Bekerja di desktop, tablet, dan mobile
+- **Multiple Resume Versions**: Simpan dan kelola beberapa versi resume dengan history
+- **Integrated Cover Letter Builder**: Buat, kelola, dan export cover letter profesional dengan multiple templates
+- **ATS Score Analysis**: Real-time analisis kompatibilitas ATS dengan feedback yang actionable
 
 ## 📋 Cara Penggunaan
 
@@ -307,13 +324,12 @@ npm run start
 ## 🎯 Roadmap
 
 Fitur yang bisa ditambahkan di masa depan:
-- [ ] Multiple resume versions (menyimpan beberapa resume berbeda)
 - [ ] Spell checker & grammar suggestions
-- [ ] Cover letter builder terintegrasi
-- [ ] Export ke format lain (DOCX, Google Docs)
+- [ ] Export ke format Google Docs
 - [ ] Collaboration features (share & edit bersama)
-- [ ] Resume scoring & ATS compatibility checker
-- [ ] Template library yang lebih besar
+- [ ] Enhanced template library dengan design lebih profesional
+- [ ] Resume parsing dari PDF/TXT files
+- [ ] Interview preparation tools
 
 ## 💡 Tips Mendapat Job
 

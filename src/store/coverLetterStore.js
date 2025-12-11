@@ -64,7 +64,14 @@ export const useCoverLetterStore = create(
       partialize: (state) => ({
         coverLetters: state.coverLetters,
         activeCoverLetterId: state.activeCoverLetterId
-      })
+      }),
+      // Skip hydration initially, we'll hydrate manually on client
+      skipHydration: true,
     }
   )
 );
+
+// Rehydrate on client side
+if (typeof window !== 'undefined') {
+  useCoverLetterStore.persist.rehydrate();
+}

@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf';
-import { TEMPLATE_COLORS, normalizeText, generateFilename } from './templateMetadata.js';
+﻿import jsPDF from 'jspdf';
+import { normalizeText, generateFilename } from './templateMetadata.js';
 import { TEMPLATE_CONFIGS } from './templateConfig';
 
 // Convert hex color to RGB array
@@ -13,16 +13,35 @@ const hexToRgb = (hex) => {
 };
 
 // Convert template config to colors object for PDF generation
-const getTemplateColors = (templateId) => {
+const getTemplateConfig = (templateId) => {
   const template = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS.classic;
   return {
     text: hexToRgb(template.text),
     textDark: hexToRgb(template.textDark),
     textMuted: hexToRgb(template.textMuted),
+    textLight: hexToRgb(template.textLight || '#9ca3af'),
     accent: hexToRgb(template.accentColor),
     headerAlign: template.headerStyle === 'centered' ? 'center' : 'left',
-    layout: template.layout
+    layout: template.layout || 'single-column',
+    sectionStyle: template.sectionStyle,
+    bulletStyle: template.bulletStyle,
+    nameSize: parseInt(template.nameSize) || 22,
+    sectionTitleSize: parseInt(template.sectionTitleSize) || 11,
+    borderWidth: parseFloat(template.borderWidth) || 1,
+    border: hexToRgb(template.border || '#cccccc'),
+    borderDark: hexToRgb(template.borderDark || '#000000'),
+    sidebarWidth: template.sidebarWidth ? parseFloat(template.sidebarWidth) / 100 : 0.25,
+    sidebarBg: template.sidebarBg ? hexToRgb(template.sidebarBg) : [243, 244, 246],
   };
+};
+
+// Get bullet character based on style
+const getBulletChar = (bulletStyle) => {
+  switch (bulletStyle) {
+    case 'arrow': return 'â–¸';
+    case 'dash': return 'â€“';
+    default: return 'â€¢';
+  }
 };
 
 // ATS-friendly PDF export using native text rendering (small file size, selectable text)
@@ -33,7 +52,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     }
 
     const { personalInfo, experience, education, skills, projects, certifications, languages, links, customSections, template = 'classic' } = resumeData;
-    const colors = getTemplateColors(template);
+    const config = getTemplateConfig(template);
     
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -44,6 +63,555 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     
+    // Route to appropriate layout renderer
+    if (config.layout === 'sidebar') {
+      renderSidebarLayout(pdf, resumeData, config, pageWidth, pageHeight);
+    } else if (config.layout === 'two-column') {
+      renderTwoColumnLayout(pdf, resumeData, config, pageWidth, pageHeight);
+    } else {
+      renderSingleColumnLayout(pdf, resumeData, config, pageWidth, pageHeight);
+    }
+
+    // Save PDF with generated filename
+    const generatedFilename = generateFilename(personalInfo.fullName, '', 'pdf');
+    pdf.save(generatedFilename);
+    return true;
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw new Error('Failed to generate PDF: ' + error.message);
+  }
+};
+
+// ============ SIDEBAR LAYOUT RENDERER ============
+const renderSidebarLayout = (pdf, resumeData, config, pageWidth, pageHeight) => {
+  const { personalInfo, experience, education, skills, projects, certifications, languages, links } = resumeData;
+  
+  const sidebarWidth = pageWidth * config.sidebarWidth;
+  const mainWidth = pageWidth - sidebarWidth;
+  const marginTop = 40;
+  const marginBottom = 50;
+  const padding = 20;
+  
+  // Draw sidebar background for current page
+  const drawSidebarBackground = () => {
+    pdf.setFillColor(...config.sidebarBg);
+    pdf.rect(0, 0, sidebarWidth, pageHeight, 'F');
+    pdf.setDrawColor(...config.border);
+    pdf.setLineWidth(0.5);
+    pdf.line(sidebarWidth, 0, sidebarWidth, pageHeight);
+  };
+  
+  // Initial sidebar background
+  drawSidebarBackground();
+  
+  let sidebarY = marginTop;
+  let mainY = marginTop;
+  
+  // Helper functions
+  const wrapText = (text, maxWidth, fontSize) => {
+    pdf.setFontSize(fontSize);
+    return pdf.splitTextToSize(text, maxWidth);
+  };
+  
+  // Check and handle page overflow for main content
+  const checkMainPageOverflow = (neededHeight = 15) => {
+    if (mainY + neededHeight > pageHeight - marginBottom) {
+      pdf.addPage();
+      drawSidebarBackground();
+      mainY = marginTop;
+      return true;
+    }
+    return false;
+  };
+  
+  const drawSidebarSectionTitle = (title, x) => {
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(...config.accent);
+    pdf.text(title.toUpperCase(), x, sidebarY);
+    sidebarY += 12;
+  };
+  
+  const drawMainSectionTitle = (title, x) => {
+    checkMainPageOverflow(40);
+    
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(10);
+    
+    if (config.sectionStyle === 'colorbar') {
+      pdf.setFillColor(...config.accent);
+      pdf.rect(x, mainY - 8, 2, 11, 'F');
+      pdf.setTextColor(...config.accent);
+      pdf.text(title.toUpperCase(), x + 6, mainY);
+    } else {
+      pdf.setTextColor(...config.textDark);
+      pdf.text(title.toUpperCase(), x, mainY);
+    }
+    mainY += 14;
+  };
+  
+  // ===== SIDEBAR CONTENT =====
+  
+  // Name
+  pdf.setFont('times', 'bold');
+  pdf.setFontSize(16);
+  pdf.setTextColor(...config.accent);
+  const nameLines = wrapText(personalInfo.fullName || 'Your Name', sidebarWidth - padding * 2, 16);
+  nameLines.forEach(line => {
+    pdf.text(line, padding, sidebarY);
+    sidebarY += 18;
+  });
+  sidebarY += 8;
+  
+  // Contact Info
+  pdf.setFont('times', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(...config.textMuted);
+  
+  if (personalInfo.email) {
+    pdf.text(personalInfo.email, padding, sidebarY);
+    sidebarY += 10;
+  }
+  if (personalInfo.phone) {
+    pdf.text(personalInfo.phone, padding, sidebarY);
+    sidebarY += 10;
+  }
+  if (personalInfo.location) {
+    pdf.text(personalInfo.location, padding, sidebarY);
+    sidebarY += 10;
+  }
+  if (personalInfo.linkedin) {
+    pdf.setTextColor(...config.accent);
+    pdf.text('LinkedIn', padding, sidebarY);
+    sidebarY += 10;
+  }
+  if (personalInfo.github) {
+    pdf.setTextColor(...config.accent);
+    pdf.text('GitHub', padding, sidebarY);
+    sidebarY += 10;
+  }
+  sidebarY += 12;
+  
+  // Skills in sidebar
+  if (skills && skills.length > 0) {
+    drawSidebarSectionTitle('Skills', padding);
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...config.text);
+    skills.forEach(skill => {
+      const lines = wrapText(skill.name, sidebarWidth - padding * 2, 8);
+      lines.forEach(line => {
+        pdf.text(line, padding, sidebarY);
+        sidebarY += 10;
+      });
+    });
+    sidebarY += 10;
+  }
+  
+  // Languages in sidebar
+  if (languages && languages.length > 0) {
+    drawSidebarSectionTitle('Languages', padding);
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...config.text);
+    languages.forEach(lang => {
+      const text = lang.level ? `${lang.name} (${lang.level})` : lang.name;
+      pdf.text(text, padding, sidebarY);
+      sidebarY += 10;
+    });
+    sidebarY += 10;
+  }
+  
+  // ===== MAIN CONTENT =====
+  const mainX = sidebarWidth + padding;
+  const mainContentWidth = mainWidth - padding * 2;
+  
+  // Summary
+  if (personalInfo.summary) {
+    drawMainSectionTitle('Professional Summary', mainX);
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(...config.text);
+    const summaryLines = wrapText(normalizeText(personalInfo.summary), mainContentWidth, 9);
+    summaryLines.forEach(line => {
+      checkMainPageOverflow(11);
+      pdf.text(line, mainX, mainY);
+      mainY += 11;
+    });
+    mainY += 10;
+  }
+  
+  // Experience
+  if (experience && experience.length > 0) {
+    drawMainSectionTitle('Professional Experience', mainX);
+    experience.forEach((exp, idx) => {
+      // Check if we have room for at least the header (position + company = ~25)
+      checkMainPageOverflow(25);
+      
+      // Position and dates
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textDark);
+      pdf.text(exp.position || '', mainX, mainY);
+      
+      const dateText = `${exp.startDate || ''} - ${exp.current ? 'Present' : exp.endDate || ''}`;
+      pdf.setFont('times', 'normal');
+      pdf.setTextColor(...config.textLight);
+      const dateWidth = pdf.getTextWidth(dateText);
+      pdf.text(dateText, sidebarWidth + mainWidth - padding - dateWidth, mainY);
+      mainY += 11;
+      
+      // Company
+      checkMainPageOverflow(11);
+      pdf.setFont('times', 'italic');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textMuted);
+      pdf.text(`${exp.company || ''}${exp.location ? ', ' + exp.location : ''}`, mainX, mainY);
+      mainY += 11;
+      
+      // Bullets
+      if (exp.bullets && exp.bullets.length > 0) {
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(...config.text);
+        exp.bullets.forEach(bullet => {
+          if (bullet && bullet.trim()) {
+            const bulletLines = wrapText(normalizeText(bullet), mainContentWidth - 12, 9);
+            bulletLines.forEach((line, lineIdx) => {
+              checkMainPageOverflow(11);
+              if (lineIdx === 0) {
+                pdf.text('•', mainX + 4, mainY);
+              }
+              pdf.text(line, mainX + 12, mainY);
+              mainY += 11;
+            });
+          }
+        });
+      }
+      if (idx < experience.length - 1) mainY += 6;
+    });
+    mainY += 10;
+  }
+  
+  // Education
+  if (education && education.length > 0) {
+    drawMainSectionTitle('Education', mainX);
+    education.forEach((edu, idx) => {
+      checkMainPageOverflow(25);
+      
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textDark);
+      pdf.text(edu.degree || '', mainX, mainY);
+      
+      const dateText = `${edu.startDate || ''} - ${edu.endDate || ''}`;
+      pdf.setFont('times', 'normal');
+      pdf.setTextColor(...config.textLight);
+      const dateWidth = pdf.getTextWidth(dateText);
+      pdf.text(dateText, sidebarWidth + mainWidth - padding - dateWidth, mainY);
+      mainY += 11;
+      
+      checkMainPageOverflow(13);
+      pdf.setFont('times', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textMuted);
+      let schoolText = edu.school || '';
+      if (edu.location) schoolText += ', ' + edu.location;
+      if (edu.gpa) schoolText += ' | GPA: ' + edu.gpa;
+      pdf.text(schoolText, mainX, mainY);
+      mainY += 13;
+    });
+    mainY += 10;
+  }
+  
+  // Projects
+  if (projects && projects.length > 0) {
+    drawMainSectionTitle('Projects', mainX);
+    projects.forEach((project, idx) => {
+      checkMainPageOverflow(22);
+      
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textDark);
+      pdf.text(project.name || '', mainX, mainY);
+      mainY += 11;
+      
+      if (project.description) {
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(...config.text);
+        const descLines = wrapText(normalizeText(project.description), mainContentWidth, 9);
+        descLines.forEach(line => {
+          checkMainPageOverflow(11);
+          pdf.text(line, mainX, mainY);
+          mainY += 11;
+        });
+      }
+      if (idx < projects.length - 1) mainY += 6;
+    });
+  }
+};
+
+// ============ TWO-COLUMN LAYOUT RENDERER ============
+const renderTwoColumnLayout = (pdf, resumeData, config, pageWidth, pageHeight) => {
+  const { personalInfo, experience, education, skills, projects, certifications, languages, links } = resumeData;
+  
+  const leftWidth = pageWidth * config.sidebarWidth;
+  const rightWidth = pageWidth - leftWidth;
+  const marginTop = 40;
+  const marginBottom = 50;
+  const padding = 25;
+  
+  // Draw divider line for current page
+  const drawDivider = () => {
+    pdf.setDrawColor(...config.border);
+    pdf.setLineWidth(0.5);
+    pdf.line(leftWidth, marginTop, leftWidth, pageHeight - marginBottom);
+  };
+  
+  // Initial divider
+  drawDivider();
+  
+  let leftY = marginTop;
+  let rightY = marginTop;
+  
+  // Helper functions
+  const wrapText = (text, maxWidth, fontSize) => {
+    pdf.setFontSize(fontSize);
+    return pdf.splitTextToSize(text, maxWidth);
+  };
+  
+  // Check and handle page overflow for right column
+  const checkRightPageOverflow = (neededHeight = 15) => {
+    if (rightY + neededHeight > pageHeight - marginBottom) {
+      pdf.addPage();
+      drawDivider();
+      rightY = marginTop;
+      return true;
+    }
+    return false;
+  };
+  
+  const drawLeftSectionTitle = (title) => {
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(9);
+    if (config.sectionStyle === 'colorbar') {
+      pdf.setFillColor(...config.accent);
+      pdf.rect(padding, leftY - 8, 2, 10, 'F');
+      pdf.setTextColor(...config.accent);
+      pdf.text(title.toUpperCase(), padding + 6, leftY);
+    } else {
+      pdf.setTextColor(...config.textDark);
+      pdf.text(title.toUpperCase(), padding, leftY);
+    }
+    leftY += 12;
+  };
+  
+  const drawRightSectionTitle = (title) => {
+    checkRightPageOverflow(40);
+    
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(10);
+    if (config.sectionStyle === 'colorbar') {
+      pdf.setFillColor(...config.accent);
+      pdf.rect(leftWidth + padding, rightY - 8, 2, 12, 'F');
+      pdf.setTextColor(...config.accent);
+      pdf.text(title.toUpperCase(), leftWidth + padding + 6, rightY);
+    } else {
+      pdf.setTextColor(...config.textDark);
+      pdf.text(title.toUpperCase(), leftWidth + padding, rightY);
+    }
+    rightY += 14;
+  };
+  
+  // ===== LEFT COLUMN =====
+  const leftContentWidth = leftWidth - padding * 2;
+  
+  // Name
+  pdf.setFont('times', 'bold');
+  pdf.setFontSize(14);
+  pdf.setTextColor(...config.textDark);
+  const nameLines = wrapText(personalInfo.fullName || 'Your Name', leftContentWidth, 14);
+  nameLines.forEach(line => {
+    pdf.text(line, padding, leftY);
+    leftY += 16;
+  });
+  leftY += 6;
+  
+  // Contact Info
+  pdf.setFont('times', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(...config.textMuted);
+  
+  if (personalInfo.email) {
+    pdf.text(personalInfo.email, padding, leftY);
+    leftY += 10;
+  }
+  if (personalInfo.phone) {
+    pdf.text(personalInfo.phone, padding, leftY);
+    leftY += 10;
+  }
+  if (personalInfo.location) {
+    pdf.text(personalInfo.location, padding, leftY);
+    leftY += 10;
+  }
+  leftY += 10;
+  
+  // Skills
+  if (skills && skills.length > 0) {
+    drawLeftSectionTitle('Skills');
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...config.text);
+    skills.forEach(skill => {
+      const lines = wrapText(skill.name, leftContentWidth, 8);
+      lines.forEach(line => {
+        pdf.text(line, padding, leftY);
+        leftY += 10;
+      });
+    });
+    leftY += 8;
+  }
+  
+  // Languages
+  if (languages && languages.length > 0) {
+    drawLeftSectionTitle('Languages');
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...config.text);
+    languages.forEach(lang => {
+      const text = lang.level ? `${lang.name} (${lang.level})` : lang.name;
+      pdf.text(text, padding, leftY);
+      leftY += 10;
+    });
+    leftY += 8;
+  }
+  
+  // Summary in left column
+  if (personalInfo.summary) {
+    drawLeftSectionTitle('Summary');
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...config.text);
+    const summaryLines = wrapText(normalizeText(personalInfo.summary), leftContentWidth, 8);
+    summaryLines.forEach(line => {
+      pdf.text(line, padding, leftY);
+      leftY += 10;
+    });
+  }
+  
+  // ===== RIGHT COLUMN =====
+  const rightX = leftWidth + padding;
+  const rightContentWidth = rightWidth - padding * 2;
+  
+  // Experience
+  if (experience && experience.length > 0) {
+    drawRightSectionTitle('Experience');
+    experience.forEach((exp, idx) => {
+      checkRightPageOverflow(35);
+      
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textDark);
+      pdf.text(exp.position || '', rightX, rightY);
+      rightY += 11;
+      
+      checkRightPageOverflow(10);
+      pdf.setFont('times', 'italic');
+      pdf.setFontSize(8);
+      pdf.setTextColor(...config.textMuted);
+      pdf.text(`${exp.company || ''} ${exp.location ? '• ' + exp.location : ''}`, rightX, rightY);
+      rightY += 10;
+      
+      checkRightPageOverflow(11);
+      pdf.setFont('times', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(...config.textLight);
+      pdf.text(`${exp.startDate || ''} - ${exp.current ? 'Present' : exp.endDate || ''}`, rightX, rightY);
+      rightY += 11;
+      
+      if (exp.bullets && exp.bullets.length > 0) {
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(...config.text);
+        exp.bullets.forEach(bullet => {
+          if (bullet && bullet.trim()) {
+            const bulletLines = wrapText(normalizeText(bullet), rightContentWidth - 10, 8);
+            bulletLines.forEach((line, lineIdx) => {
+              checkRightPageOverflow(10);
+              if (lineIdx === 0) pdf.text('•', rightX + 3, rightY);
+              pdf.text(line, rightX + 10, rightY);
+              rightY += 10;
+            });
+          }
+        });
+      }
+      if (idx < experience.length - 1) rightY += 6;
+    });
+    rightY += 10;
+  }
+  
+  // Education
+  if (education && education.length > 0) {
+    drawRightSectionTitle('Education');
+    education.forEach((edu, idx) => {
+      checkRightPageOverflow(25);
+      
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textDark);
+      pdf.text(edu.degree || '', rightX, rightY);
+      rightY += 11;
+      
+      checkRightPageOverflow(10);
+      pdf.setFont('times', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(...config.textMuted);
+      pdf.text(`${edu.school || ''} ${edu.location ? '• ' + edu.location : ''}`, rightX, rightY);
+      rightY += 10;
+      
+      checkRightPageOverflow(10);
+      pdf.setFont('times', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(...config.textLight);
+      pdf.text(`${edu.startDate || ''} - ${edu.endDate || ''}`, rightX, rightY);
+      rightY += 12;
+    });
+    rightY += 10;
+  }
+  
+  // Projects
+  if (projects && projects.length > 0) {
+    drawRightSectionTitle('Projects');
+    projects.forEach((project, idx) => {
+      checkRightPageOverflow(22);
+      
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...config.textDark);
+      pdf.text(project.name || '', rightX, rightY);
+      rightY += 11;
+      
+      if (project.description) {
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(...config.text);
+        const descLines = wrapText(normalizeText(project.description), rightContentWidth, 8);
+        descLines.forEach(line => {
+          checkRightPageOverflow(10);
+          pdf.text(line, rightX, rightY);
+          rightY += 10;
+        });
+      }
+      if (idx < projects.length - 1) rightY += 6;
+    });
+  }
+};
+
+// ============ SINGLE-COLUMN LAYOUT RENDERER ============
+const renderSingleColumnLayout = (pdf, resumeData, config, pageWidth, pageHeight) => {
+  const { personalInfo, experience, education, skills, projects, certifications, languages, links, customSections, template = 'classic' } = resumeData;
+  
     // Margins
     const marginLeft = 50;
     const marginRight = 50;
@@ -68,21 +636,64 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       pdf.setFontSize(fontSize);
       return pdf.splitTextToSize(text, maxWidth);
     };
+    
+    // Helper function to draw section title with proper styling
+    const drawSectionTitle = (title, startX = marginLeft) => {
+      checkNewPage(40);
+      
+      const titleFontSize = config.sectionTitleSize || 11;
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(titleFontSize);
+      
+      switch (config.sectionStyle) {
+        case 'colorbar':
+          // Draw color bar on left
+          pdf.setFillColor(...config.accent);
+          pdf.rect(startX, y - 10, 3, 14, 'F');
+          pdf.setTextColor(...config.accent);
+          pdf.text(title.toUpperCase(), startX + 8, y);
+          break;
+        case 'box':
+          // Draw background box
+          const textW = pdf.getTextWidth(title.toUpperCase()) + 16;
+          pdf.setFillColor(243, 244, 246);
+          pdf.rect(startX, y - 10, textW, 16, 'F');
+          pdf.setTextColor(...config.textDark);
+          pdf.text(title.toUpperCase(), startX + 8, y);
+          break;
+        case 'none':
+          pdf.setTextColor(...config.textDark);
+          pdf.text(title.toUpperCase(), startX, y);
+          break;
+        default: // underline
+          pdf.setTextColor(...config.textDark);
+          pdf.text(title.toUpperCase(), startX, y);
+          y += 4;
+          pdf.setDrawColor(...config.border);
+          pdf.setLineWidth(config.borderWidth || 0.5);
+          pdf.line(startX, y, pageWidth - marginRight, y);
+          break;
+      }
+      
+      y += 14;
+    };
+    
+    const bulletChar = getBulletChar(config.bulletStyle);
 
     // ============ HEADER ============
     // Name
     pdf.setFont('times', 'bold');
-    pdf.setFontSize(colors.headerAlign === 'left' ? 24 : 20);
-    pdf.setTextColor(...colors.textDark);
-    const nameX = colors.headerAlign === 'left' ? marginLeft : pageWidth / 2;
-    const nameAlign = colors.headerAlign === 'left' ? 'left' : 'center';
+    pdf.setFontSize(config.headerAlign === 'left' ? 24 : 20);
+    pdf.setTextColor(...config.textDark);
+    const nameX = config.headerAlign === 'left' ? marginLeft : pageWidth / 2;
+    const nameAlign = config.headerAlign === 'left' ? 'left' : 'center';
     pdf.text(personalInfo.fullName || 'Your Name', nameX, y, { align: nameAlign });
-    y += colors.headerAlign === 'left' ? 28 : 24;
+    y += config.headerAlign === 'left' ? 28 : 24;
 
     // Contact Info Line
     pdf.setFont('times', 'normal');
     pdf.setFontSize(10);
-    pdf.setTextColor(...colors.textMuted);
+    pdf.setTextColor(...config.textMuted);
     
     const contactParts = [];
     if (personalInfo.email) contactParts.push(personalInfo.email);
@@ -110,20 +721,20 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     }
     
     if (linkParts.length > 0) {
-      pdf.setTextColor(...colors.accent);
+      pdf.setTextColor(...config.accent);
       const linksText = linkParts.map(l => l.text).join('  |  ');
       
-      if (colors.headerAlign === 'left') {
+      if (config.headerAlign === 'left') {
         let currentX = marginLeft;
         linkParts.forEach((link, index) => {
           const linkWidth = pdf.getTextWidth(link.text);
           pdf.textWithLink(link.text, currentX, y, { url: link.url });
           currentX += linkWidth;
           if (index < linkParts.length - 1) {
-            pdf.setTextColor(...colors.textMuted);
+            pdf.setTextColor(...config.textMuted);
             pdf.text('  |  ', currentX, y);
             currentX += pdf.getTextWidth('  |  ');
-            pdf.setTextColor(...colors.accent);
+            pdf.setTextColor(...config.accent);
           }
         });
       } else {
@@ -136,10 +747,10 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
           pdf.textWithLink(link.text, currentX, y, { url: link.url });
           currentX += linkWidth;
           if (index < linkParts.length - 1) {
-            pdf.setTextColor(...colors.textMuted);
+            pdf.setTextColor(...config.textMuted);
             pdf.text('  |  ', currentX, y);
             currentX += pdf.getTextWidth('  |  ');
-            pdf.setTextColor(...colors.accent);
+            pdf.setTextColor(...config.accent);
           }
         });
       }
@@ -147,7 +758,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     }
 
     // Divider line
-    pdf.setDrawColor(...colors.textDark);
+    pdf.setDrawColor(...config.textDark);
     pdf.setLineWidth(template === 'modern' ? 1 : 0.5);
     pdf.line(marginLeft, y, pageWidth - marginRight, y);
     y += 16;
@@ -158,13 +769,13 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('PROFESSIONAL SUMMARY', marginLeft, y);
       y += 14;
       
       pdf.setFont('times', 'normal');
       pdf.setFontSize(10);
-      pdf.setTextColor(...colors.text);
+      pdf.setTextColor(...config.text);
       const summaryLines = wrapText(normalizeText(personalInfo.summary), contentWidth, 10);
       summaryLines.forEach(line => {
         checkNewPage();
@@ -180,7 +791,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('PROFESSIONAL EXPERIENCE', marginLeft, y);
       y += 14;
 
@@ -190,10 +801,10 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Job Title and Date on same line
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(...colors.textDark);
+        pdf.setTextColor(...config.textDark);
         pdf.text(exp.position || '', marginLeft, y);
         
-        const dateText = `${exp.startDate || ''} – ${exp.current ? 'Present' : exp.endDate || ''}`;
+        const dateText = `${exp.startDate || ''} â€“ ${exp.current ? 'Present' : exp.endDate || ''}`;
         pdf.setFont('times', 'normal');
         pdf.text(dateText, pageWidth - marginRight, y, { align: 'right' });
         y += 12;
@@ -201,7 +812,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Company and Location
         pdf.setFont('times', 'italic');
         pdf.setFontSize(10);
-        pdf.setTextColor(...colors.textMuted);
+        pdf.setTextColor(...config.textMuted);
         const companyLocation = [exp.company, exp.location].filter(Boolean).join(', ');
         pdf.text(companyLocation, marginLeft, y);
         y += 14;
@@ -210,7 +821,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (exp.bullets && exp.bullets.length > 0) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
-          pdf.setTextColor(...colors.text);
+          pdf.setTextColor(...config.text);
           exp.bullets.forEach(bullet => {
             if (bullet && bullet.trim()) {
               const normalizedBullet = normalizeText(bullet);
@@ -219,7 +830,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
               bulletLines.forEach((line, lineIndex) => {
                 checkNewPage();
                 if (lineIndex === 0) {
-                  pdf.text('•', marginLeft + 5, y);
+                  pdf.text('â€¢', marginLeft + 5, y);
                   pdf.text(line, marginLeft + 15, y);
                 } else {
                   pdf.text(line, marginLeft + 15, y);
@@ -241,7 +852,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('EDUCATION', marginLeft, y);
       y += 14;
 
@@ -251,10 +862,10 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Degree and Date
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(...colors.textDark);
+        pdf.setTextColor(...config.textDark);
         pdf.text(edu.degree || '', marginLeft, y);
         
-        const eduDateText = `${edu.startDate || ''} – ${edu.endDate || ''}`;
+        const eduDateText = `${edu.startDate || ''} â€“ ${edu.endDate || ''}`;
         pdf.setFont('times', 'normal');
         pdf.text(eduDateText, pageWidth - marginRight, y, { align: 'right' });
         y += 12;
@@ -262,7 +873,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // School, Location, GPA
         pdf.setFont('times', 'normal');
         pdf.setFontSize(10);
-        pdf.setTextColor(...colors.textMuted);
+        pdf.setTextColor(...config.textMuted);
         let schoolInfo = [edu.school, edu.location].filter(Boolean).join(', ');
         if (edu.gpa) schoolInfo += ` | GPA: ${edu.gpa}`;
         pdf.text(schoolInfo, marginLeft, y);
@@ -279,15 +890,15 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('SKILLS', marginLeft, y);
       y += 14;
       
       pdf.setFont('times', 'normal');
       pdf.setFontSize(10);
-      pdf.setTextColor(...colors.text);
+      pdf.setTextColor(...config.text);
       
-      const skillsText = skills.map(s => s.name).filter(Boolean).join('  •  ');
+      const skillsText = skills.map(s => s.name).filter(Boolean).join('  â€¢  ');
       const skillsLines = wrapText(skillsText, contentWidth, 10);
       skillsLines.forEach(line => {
         checkNewPage();
@@ -303,7 +914,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('PROJECTS', marginLeft, y);
       y += 14;
 
@@ -313,14 +924,14 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         // Project Name
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(...colors.textDark);
+        pdf.setTextColor(...config.textDark);
         pdf.text(project.name || '', marginLeft, y);
         
         // Project URL as clickable link
         if (project.url) {
           const nameWidth = pdf.getTextWidth(project.name + '  ');
           pdf.setFont('times', 'normal');
-          pdf.setTextColor(...colors.accent);
+          pdf.setTextColor(...config.accent);
           const projectUrl = project.url.startsWith('http') ? project.url : `https://${project.url}`;
           pdf.textWithLink(project.url, marginLeft + nameWidth, y, { url: projectUrl });
         }
@@ -330,7 +941,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (project.description) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
-          pdf.setTextColor(...colors.text);
+          pdf.setTextColor(...config.text);
           const descLines = wrapText(normalizeText(project.description), contentWidth, 10);
           descLines.forEach(line => {
             checkNewPage();
@@ -343,7 +954,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (project.technologies && project.technologies.length > 0) {
           pdf.setFont('times', 'italic');
           pdf.setFontSize(9);
-          pdf.setTextColor(...colors.textMuted);
+          pdf.setTextColor(...config.textMuted);
           const techText = 'Technologies: ' + project.technologies.join(', ');
           const techLines = wrapText(techText, contentWidth, 9);
           techLines.forEach(line => {
@@ -364,7 +975,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('CERTIFICATIONS', marginLeft, y);
       y += 14;
 
@@ -373,7 +984,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(...colors.textDark);
+        pdf.setTextColor(...config.textDark);
         pdf.text(cert.name || '', marginLeft, y);
         
         if (cert.date) {
@@ -385,7 +996,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (cert.issuer) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(9);
-          pdf.setTextColor(...colors.textMuted);
+          pdf.setTextColor(...config.textMuted);
           pdf.text(cert.issuer, marginLeft, y);
           y += 11;
         }
@@ -393,7 +1004,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (cert.url) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(9);
-          pdf.setTextColor(...colors.accent);
+          pdf.setTextColor(...config.accent);
           const certUrl = cert.url.startsWith('http') ? cert.url : `https://${cert.url}`;
           pdf.textWithLink('View Certificate', marginLeft, y, { url: certUrl });
           y += 11;
@@ -410,15 +1021,15 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('LANGUAGES', marginLeft, y);
       y += 14;
       
       pdf.setFont('times', 'normal');
       pdf.setFontSize(10);
-      pdf.setTextColor(...colors.text);
+      pdf.setTextColor(...config.text);
       
-      const langText = languages.map(l => l.level ? `${l.name} (${l.level})` : l.name).filter(Boolean).join('  •  ');
+      const langText = languages.map(l => l.level ? `${l.name} (${l.level})` : l.name).filter(Boolean).join('  â€¢  ');
       const langLines = wrapText(langText, contentWidth, 10);
       langLines.forEach(line => {
         checkNewPage();
@@ -434,7 +1045,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
       
       pdf.setFont('times', 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+      pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
       pdf.text('LINKS', marginLeft, y);
       y += 14;
       
@@ -443,13 +1054,13 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         
         pdf.setFont('times', 'bold');
         pdf.setFontSize(10);
-        pdf.setTextColor(...colors.textDark);
+        pdf.setTextColor(...config.textDark);
         const labelText = link.label + ': ';
         pdf.text(labelText, marginLeft, y);
         
         const labelWidth = pdf.getTextWidth(labelText);
         pdf.setFont('times', 'normal');
-        pdf.setTextColor(...colors.accent);
+        pdf.setTextColor(...config.accent);
         const linkUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
         pdf.textWithLink(link.url, marginLeft + labelWidth, y, { url: linkUrl });
         y += 14;
@@ -464,14 +1075,14 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         
         pdf.setFont('times', 'bold');
         pdf.setFontSize(11);
-        pdf.setTextColor(...(template === 'modern' ? colors.accent : colors.textDark));
+        pdf.setTextColor(...(template === 'modern' ? config.accent : config.textDark));
         pdf.text((section.title || 'ADDITIONAL').toUpperCase(), marginLeft, y);
         y += 14;
         
         if (section.content) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
-          pdf.setTextColor(...colors.text);
+          pdf.setTextColor(...config.text);
           const contentLines = wrapText(normalizeText(section.content), contentWidth, 10);
           contentLines.forEach(line => {
             checkNewPage();
@@ -483,7 +1094,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         if (section.items && section.items.length > 0) {
           pdf.setFont('times', 'normal');
           pdf.setFontSize(10);
-          pdf.setTextColor(...colors.text);
+          pdf.setTextColor(...config.text);
           section.items.forEach(item => {
             const itemText = typeof item === 'string' ? item : item.text || item.name || '';
             if (itemText) {
@@ -492,7 +1103,7 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
               itemLines.forEach((line, lineIndex) => {
                 checkNewPage();
                 if (lineIndex === 0) {
-                  pdf.text('•', marginLeft + 5, y);
+                  pdf.text('â€¢', marginLeft + 5, y);
                   pdf.text(line, marginLeft + 15, y);
                 } else {
                   pdf.text(line, marginLeft + 15, y);
@@ -505,15 +1116,6 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
         y += 8;
       });
     }
-
-    // Save PDF with generated filename
-    const generatedFilename = generateFilename(personalInfo.fullName, '', 'pdf');
-    pdf.save(generatedFilename);
-    return true;
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw new Error('Failed to generate PDF: ' + error.message);
-  }
 };
 
 export const exportToJSON = (data, filename = 'resume.json') => {
@@ -706,72 +1308,195 @@ export const exportCoverLetterToPDF = async (filename = 'cover-letter.pdf', cove
   }
 };
 
-// Cover Letter DOCX Export (using basic HTML approach)
-export const exportCoverLetterToDOCX = (filename = 'cover-letter.docx', coverLetterData, personalInfo = {}) => {
+// Cover Letter DOCX Export using docx library (proper Word format)
+export const exportCoverLetterToDOCX = async (filename = 'cover-letter.docx', coverLetterData, personalInfo = {}) => {
   try {
     if (!coverLetterData) {
       throw new Error('Cover letter data not provided');
     }
 
-    const html = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>
-          <meta charset='UTF-8'>
-          <style>
-            body { font-family: Calibri, sans-serif; margin: 1in; line-height: 1.15; }
-            .header { text-align: left; margin-bottom: 0.5in; }
-            .recipient { margin: 0.5in 0; }
-            .body { margin: 0.5in 0; line-height: 1.5; }
-            .body p { margin-bottom: 0.5in; text-align: justify; }
-            .closing { margin-top: 1in; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <strong>${personalInfo.fullName || ''}</strong><br/>
-            ${personalInfo.email ? personalInfo.email : ''} ${personalInfo.phone ? '| ' + personalInfo.phone : ''} ${personalInfo.location ? '| ' + personalInfo.location : ''}
-          </div>
-
-          <div style="margin: 0.5in 0;">
-            ${coverLetterData.date ? new Date(coverLetterData.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
-          </div>
-
-          <div class="recipient">
-            ${coverLetterData.recipientName ? coverLetterData.recipientName + '<br/>' : ''}
-            ${coverLetterData.company ? coverLetterData.company : ''}
-          </div>
-
-          <div style="margin: 0.5in 0;">
-            ${coverLetterData.salutation || 'Dear Hiring Manager'}
-          </div>
-
-          <div class="body">
-            ${coverLetterData.bodyParagraphs && coverLetterData.bodyParagraphs.length > 0 
-              ? coverLetterData.bodyParagraphs
-                  .filter(p => p.text && p.text.trim())
-                  .map(p => `<p>${p.text}</p>`)
-                  .join('')
-              : '<p></p>'
-            }
-          </div>
-
-          <div class="closing">
-            <div style="margin-bottom: 1in;">
-              ${coverLetterData.closing || 'Sincerely'}
-            </div>
-            <div style="height: 1in;"></div>
-            <div>${coverLetterData.signature || ''}</div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    // Dynamic import of docx library
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, convertInchesToTwip } = await import('docx');
+    
+    const children = [];
+    
+    // Sender's Information (Header)
+    if (personalInfo.fullName) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: personalInfo.fullName,
+              bold: true,
+              size: 24,
+            }),
+          ],
+          spacing: { after: 100 },
+        })
+      );
+    }
+    
+    // Contact info line
+    const contactParts = [];
+    if (personalInfo.email) contactParts.push(personalInfo.email);
+    if (personalInfo.phone) contactParts.push(personalInfo.phone);
+    if (personalInfo.location) contactParts.push(personalInfo.location);
+    
+    if (contactParts.length > 0) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: contactParts.join(' | '),
+              size: 20,
+              color: '555555',
+            }),
+          ],
+          spacing: { after: 400 },
+        })
+      );
+    }
+    
+    // Date
+    if (coverLetterData.date) {
+      const dateObj = new Date(coverLetterData.date);
+      const dateStr = dateObj.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: dateStr,
+              size: 22,
+            }),
+          ],
+          spacing: { after: 400 },
+        })
+      );
+    }
+    
+    // Recipient Information
+    if (coverLetterData.recipientName) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: coverLetterData.recipientName,
+              size: 22,
+            }),
+          ],
+          spacing: { after: 100 },
+        })
+      );
+    }
+    
+    if (coverLetterData.company) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: coverLetterData.company,
+              size: 22,
+            }),
+          ],
+          spacing: { after: 400 },
+        })
+      );
+    }
+    
+    // Salutation
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: coverLetterData.salutation || 'Dear Hiring Manager,',
+            size: 22,
+          }),
+        ],
+        spacing: { after: 300 },
+      })
+    );
+    
+    // Body Paragraphs
+    if (coverLetterData.bodyParagraphs && coverLetterData.bodyParagraphs.length > 0) {
+      coverLetterData.bodyParagraphs.forEach((paragraph) => {
+        if (paragraph.text && paragraph.text.trim()) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: paragraph.text.trim(),
+                  size: 22,
+                }),
+              ],
+              spacing: { after: 300, line: 360 },
+              alignment: AlignmentType.JUSTIFIED,
+            })
+          );
+        }
+      });
+    }
+    
+    // Closing
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: coverLetterData.closing || 'Sincerely,',
+            size: 22,
+          }),
+        ],
+        spacing: { before: 400, after: 600 },
+      })
+    );
+    
+    // Signature
+    if (coverLetterData.signature) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: coverLetterData.signature,
+              size: 22,
+            }),
+          ],
+        })
+      );
+    }
+    
+    // Create document
+    const doc = new Document({
+      sections: [
+        {
+          properties: {
+            page: {
+              margin: {
+                top: convertInchesToTwip(1),
+                right: convertInchesToTwip(1),
+                bottom: convertInchesToTwip(1),
+                left: convertInchesToTwip(1),
+              },
+            },
+          },
+          children,
+        },
+      ],
+    });
+    
+    // Generate and download the file
+    const buffer = await Packer.toBuffer(doc);
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
     return true;

@@ -60,7 +60,7 @@ function scoreSectionCompleteness(resume) {
   let score = 0;
   
   // Personal Info (required fields)
-  const { personalInfo } = resume;
+  const personalInfo = resume?.personalInfo || {};
   if (personalInfo.fullName) score += 3;
   else recommendations.push('Add your full name');
   
@@ -84,25 +84,26 @@ function scoreSectionCompleteness(resume) {
   }
   
   // Experience
-  if (resume.experience && resume.experience.length > 0) {
+  if (resume?.experience && resume.experience.length > 0) {
     score += 4;
   } else {
     recommendations.push('Add at least one work experience entry');
   }
   
   // Education
-  if (resume.education && resume.education.length > 0) {
+  if (resume?.education && resume.education.length > 0) {
     score += 3;
   } else {
     recommendations.push('Add at least one education entry');
   }
   
   // Skills
-  if (resume.skills && resume.skills.length >= 5) {
+  const skills = resume?.skills || [];
+  if (skills.length >= 5) {
     score += 3;
-  } else if (resume.skills && resume.skills.length > 0) {
+  } else if (skills.length > 0) {
     score += 1;
-    recommendations.push(`Add more skills (currently ${resume.skills.length}, aim for 5+)`);
+    recommendations.push(`Add more skills (currently ${skills.length}, aim for 5+)`);
   } else {
     recommendations.push('Add your skills');
   }

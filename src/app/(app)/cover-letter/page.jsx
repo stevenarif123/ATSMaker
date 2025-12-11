@@ -16,12 +16,26 @@ export default function CoverLetterBuilder() {
   const [previewZoom, setPreviewZoom] = useState(50);
   const [showPreview, setShowPreview] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [importStatus, setImportStatus] = useState(null); // 'success' | 'no-resume' | null
+  const [isHydrated, setIsHydrated] = useState(false);
   
   const resumeData = useResumeStore();
   const coverLetterStore = useCoverLetterStore();
   
-  const activeCoverLetter = coverLetterStore.getActiveCoverLetter();
+  // Access resume state directly to avoid getter issues
+  const activeResumeId = useResumeStore((s) => s.activeResumeId);
+  const versions = useResumeStore((s) => s.versions);
+  const activeResume = versions[activeResumeId];
+  const personalInfo = activeResume?.personalInfo || {};
+  
+  // Use state for values that differ between server and client
+  const activeCoverLetter = isHydrated ? coverLetterStore.getActiveCoverLetter() : null;
   const selectedTemplate = activeCoverLetter?.templateId || 'formal';
+  
+  // Mark as hydrated after mount
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     setIsOffline(!navigator.onLine);
@@ -62,7 +76,7 @@ export default function CoverLetterBuilder() {
       salutation: 'Dear Hiring Manager',
       bodyParagraphs: [{ text: '' }, { text: '' }, { text: '' }],
       closing: 'Sincerely',
-      signature: resumeData.personalInfo.fullName || '',
+      signature: personalInfo.fullName || '',
       associatedResumeId: null,
       templateId: 'formal'
     };
@@ -72,10 +86,20 @@ export default function CoverLetterBuilder() {
   const handleImportFromResume = () => {
     if (!activeCoverLetter) return;
     
+    // Check if there's resume data to import
+    if (!activeResume || !personalInfo.fullName) {
+      setImportStatus('no-resume');
+      setTimeout(() => setImportStatus(null), 3000);
+      return;
+    }
+    
     coverLetterStore.updateCoverLetter(activeCoverLetter.id, {
-      signature: resumeData.personalInfo.fullName || activeCoverLetter.signature,
-      associatedResumeId: resumeData.activeResumeId || null
+      signature: personalInfo.fullName || activeCoverLetter.signature,
+      associatedResumeId: activeResumeId || null
     });
+    
+    setImportStatus('success');
+    setTimeout(() => setImportStatus(null), 3000);
   };
 
   const handleExportPDF = async () => {
@@ -83,7 +107,7 @@ export default function CoverLetterBuilder() {
     setIsExporting(true);
     try {
       const filename = `${activeCoverLetter.company || 'cover-letter'}.pdf`;
-      await exportCoverLetterToPDF(filename, activeCoverLetter, resumeData.personalInfo);
+      await exportCoverLetterToPDF(filename, activeCoverLetter, personalInfo);
     } catch (error) {
       console.error('Cover letter PDF export failed:', error);
     } finally {
@@ -92,15 +116,18 @@ export default function CoverLetterBuilder() {
     }
   };
 
-  const handleExportDOCX = () => {
+  const handleExportDOCX = async () => {
     if (!activeCoverLetter) return;
+    setIsExporting(true);
     try {
       const filename = `${activeCoverLetter.company || 'cover-letter'}.docx`;
-      exportCoverLetterToDOCX(filename, activeCoverLetter, resumeData.personalInfo);
+      await exportCoverLetterToDOCX(filename, activeCoverLetter, personalInfo);
     } catch (error) {
       console.error('Cover letter DOCX export failed:', error);
+    } finally {
+      setIsExporting(false);
+      setShowExportMenu(false);
     }
-    setShowExportMenu(false);
   };
 
   const handleTemplateSelect = (templateId) => {
@@ -114,13 +141,40 @@ export default function CoverLetterBuilder() {
     <div className="min-h-screen bg-slate-50">
       <OfflineIndicator isOffline={isOffline} />
       
+      {/* Import Status Toast */}
+      {importStatus && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-slide-up ${
+          importStatus === 'success' 
+            ? 'bg-green-50 text-green-800 border border-green-200' 
+            : 'bg-amber-50 text-amber-800 border border-amber-200'
+        }`}>
+          <div className="flex items-center gap-2">
+            {importStatus === 'success' ? (
+              <>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Resume data imported successfully!</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>No resume data found. Create a resume first.</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/50 sticky top-0 z-40">
         <div className="container-center py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-all">
-              <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>

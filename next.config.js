@@ -10,6 +10,8 @@ const nextConfig = {
   // For local development, access at http://localhost:3000/atsmaker
   // For Hostinger deployment in /atsmaker folder
   basePath: '/atsmaker',
+  // Ensure trailing slashes are handled correctly
+  trailingSlash: false,
 };
 
 export default nextConfig;

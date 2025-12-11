@@ -4,6 +4,19 @@
 
 ATS Resume Maker is a web application designed to help you create the perfect resume optimized for Applicant Tracking Systems (ATS). Built with modern technology, it provides an exceptional user experience with real-time editing, multiple template choices, and advanced features to maximize your chances in the recruitment process.
 
+🔗 **[Try Live Demo →](https://stevenarif.my.id/atsmaker/)**
+
+## 📸 Screenshots
+
+### Landing Page
+![Landing Page](screenshoot/landingpage.jpg)
+
+### Resume Builder
+![Resume Builder](screenshoot/builder.jpg)
+
+### Cover Letter
+![Cover Letter](screenshoot/coverletter.jpg)
+
 ## 🚀 Key Features
 
 ### Editor & Preview
@@ -32,6 +45,7 @@ ATS Resume Maker is a web application designed to help you create the perfect re
 
 ### Export & Import
 - **PDF Export**: Generate compact ATS-friendly PDFs (50-150KB) with selectable text
+- **DOCX Export**: Export resume and cover letter as properly formatted Word documents
 - **JSON Export**: Backup your resume data in JSON format
 - **JSON Import**: Restore or transfer resume data from previous exports
 - **Clickable Links**: All URLs in the PDF are clickable
@@ -42,6 +56,9 @@ ATS Resume Maker is a web application designed to help you create the perfect re
 - **Offline Support**: Works 100% offline without internet connection
 - **PWA Ready**: Can be installed as a standalone application
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Multiple Resume Versions**: Save and manage different resume versions with version history
+- **Integrated Cover Letter Builder**: Create, manage, and export professional cover letters with multiple templates
+- **ATS Score Analysis**: Real-time ATS compatibility scoring with actionable feedback for optimization
 
 ## 📋 How to Use
 
@@ -307,13 +324,12 @@ npm run start
 ## 🎯 Future Roadmap
 
 Features that could be added in the future:
-- [ ] Multiple resume versions (save several different resumes)
 - [ ] Spell checker & grammar suggestions
-- [ ] Integrated cover letter builder
-- [ ] Export to other formats (DOCX, Google Docs)
+- [ ] Export to Google Docs format
 - [ ] Collaboration features (share & edit together)
-- [ ] Resume scoring & ATS compatibility checker
-- [ ] Larger template library
+- [ ] Enhanced template library with more professional designs
+- [ ] Resume parsing from PDF/TXT files
+- [ ] Interview preparation tools
 
 ## 💡 Tips to Get Hired
 

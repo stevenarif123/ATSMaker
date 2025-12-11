@@ -1,9 +1,11 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, BorderStyle } from 'docx';
-import { TEMPLATE_COLORS, normalizeText, formatDateRange, formatLocation, generateFilename } from './templateMetadata.js';
+﻿import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, BorderStyle } from 'docx';
+import { normalizeText, formatDateRange, formatLocation, generateFilename } from './templateMetadata.js';
+import { TEMPLATE_CONFIGS } from './templateConfig.js';
 
-// Convert RGB array to hex string for docx
-const rgbToHex = (rgb) => {
-  return rgb.map(x => x.toString(16).padStart(2, '0')).join('');
+// Convert hex color to hex string for docx (remove # if present)
+const hexToDocxColor = (hex) => {
+  if (!hex) return '000000';
+  return hex.replace('#', '');
 };
 
 // ATS-friendly DOCX export using docx library
@@ -13,24 +15,23 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
       throw new Error('Resume data not provided');
     }
 
-    const { 
-      personalInfo, 
-      experience, 
-      education, 
-      skills, 
-      projects, 
-      certifications, 
-      languages, 
-      links, 
-      customSections, 
-      template = 'classic' 
-    } = resumeData;
+    // Safely extract data with defaults
+    const personalInfo = resumeData.personalInfo || {};
+    const experience = resumeData.experience || [];
+    const education = resumeData.education || [];
+    const skills = resumeData.skills || [];
+    const projects = resumeData.projects || [];
+    const certifications = resumeData.certifications || [];
+    const languages = resumeData.languages || [];
+    const links = resumeData.links || [];
+    const customSections = resumeData.customSections || [];
+    const template = resumeData.template || 'classic';
     
-    const colors = TEMPLATE_COLORS[template] || TEMPLATE_COLORS.classic;
-    const accentHex = rgbToHex(colors.accent);
-    const textHex = rgbToHex(colors.text);
-    const textDarkHex = rgbToHex(colors.textDark);
-    const textMutedHex = rgbToHex(colors.textMuted);
+    const config = TEMPLATE_CONFIGS[template] || TEMPLATE_CONFIGS.classic;
+    const accentHex = hexToDocxColor(config.accentColor);
+    const textHex = hexToDocxColor(config.text);
+    const textDarkHex = hexToDocxColor(config.textDark);
+    const textMutedHex = hexToDocxColor(config.textMuted);
     
     const children = [];
     
@@ -46,7 +47,7 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
             size: 32,
           }),
         ],
-        alignment: colors.headerAlign === 'left' ? AlignmentType.LEFT : AlignmentType.CENTER,
+        alignment: config.headerStyle === 'left' ? AlignmentType.LEFT : AlignmentType.CENTER,
         spacing: { after: 200 },
       })
     );
@@ -67,7 +68,7 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
               size: 20,
             }),
           ],
-          alignment: colors.headerAlign === 'left' ? AlignmentType.LEFT : AlignmentType.CENTER,
+          alignment: config.headerStyle === 'left' ? AlignmentType.LEFT : AlignmentType.CENTER,
           spacing: { after: 200 },
         })
       );
@@ -99,7 +100,7 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
               italics: true,
             }),
           ],
-          alignment: colors.headerAlign === 'left' ? AlignmentType.LEFT : AlignmentType.CENTER,
+          alignment: config.headerStyle === 'left' ? AlignmentType.LEFT : AlignmentType.CENTER,
           spacing: { after: 400 },
         })
       );
@@ -215,7 +216,7 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: `• ${normalizeText(bullet)}`,
+                      text: `â€¢ ${normalizeText(bullet)}`,
                       color: textHex,
                       size: 20,
                     }),
@@ -319,7 +320,7 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
         })
       );
       
-      const skillsText = skills.map(s => s.name).filter(Boolean).join('  •  ');
+      const skillsText = skills.map(s => s.name).filter(Boolean).join('  â€¢  ');
       children.push(
         new Paragraph({
           children: [
@@ -526,7 +527,7 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
         })
       );
       
-      const langText = languages.map(l => l.level ? `${l.name} (${l.level})` : l.name).filter(Boolean).join('  •  ');
+      const langText = languages.map(l => l.level ? `${l.name} (${l.level})` : l.name).filter(Boolean).join('  â€¢  ');
       children.push(
         new Paragraph({
           children: [
@@ -620,7 +621,7 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: `• ${normalizeText(item)}`,
+                    text: `â€¢ ${normalizeText(item)}`,
                     color: textHex,
                     size: 20,
                   }),

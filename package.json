@@ -1,11 +1,12 @@
 {
   "name": "atsmaker",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "copy public\\.htaccess out\\.htaccess",
     "start": "next start",
     "lint": "next lint"
   },
