@@ -1,0 +1,64 @@
+// Firestore Security Rules for ATS Maker Analytics
+// 
+// Copy and paste these rules to your Firebase Console:
+// Firebase Console > Firestore Database > Rules
+//
+// These rules allow:
+// - Anyone can write (for tracking visits/actions from static site)
+// - Only read from authenticated admin (or public read for dashboard)
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Analytics collections - allow write from anyone (for tracking)
+    // Read allowed for admin dashboard
+    match /atsmaker_visits/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /atsmaker_daily_stats/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /atsmaker_page_views/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /atsmaker_actions/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /atsmaker_countries/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
+
+// ============================================
+// IMPORTANT NOTES:
+// ============================================
+// 
+// 1. These rules are permissive for a simple analytics use case.
+//    For production, consider:
+//    - Rate limiting via Cloud Functions
+//    - IP-based throttling
+//    - Validation rules for data structure
+//
+// 2. To set up Firestore:
+//    - Go to Firebase Console > Your Project > Firestore Database
+//    - Click "Create database"
+//    - Choose "Start in test mode" (we'll add rules after)
+//    - Select a location closest to your users
+//    - Copy the rules above to the Rules tab
+//
+// 3. Collections that will be created:
+//    - atsmaker_visits: Individual visit records
+//    - atsmaker_daily_stats: Aggregated daily statistics
+//    - atsmaker_countries: Country-wise visit counts
+//    - atsmaker_actions: User actions (PDF export, etc.)

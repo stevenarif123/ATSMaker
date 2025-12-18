@@ -1,6 +1,7 @@
 ﻿import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, BorderStyle } from 'docx';
 import { normalizeText, formatDateRange, formatLocation, generateFilename } from './templateMetadata.js';
 import { TEMPLATE_CONFIGS } from './templateConfig.js';
+import { trackAction, ACTIONS } from './analytics';
 
 // Convert hex color to hex string for docx (remove # if present)
 const hexToDocxColor = (hex) => {
@@ -665,6 +666,9 @@ export const exportToDOCX = async (element, filename = 'resume.docx', resumeData
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    // Track DOCX export
+    trackAction(ACTIONS.DOCX_EXPORT, { type: 'resume', template: template });
     
   } catch (error) {
     console.error('DOCX export failed:', error);

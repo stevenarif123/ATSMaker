@@ -1,6 +1,7 @@
 ﻿import jsPDF from 'jspdf';
 import { normalizeText, generateFilename } from './templateMetadata.js';
 import { TEMPLATE_CONFIGS } from './templateConfig';
+import { trackAction, ACTIONS } from './analytics';
 
 // Convert hex color to RGB array
 const hexToRgb = (hex) => {
@@ -75,6 +76,10 @@ export const exportToPDF = async (element, filename = 'resume.pdf', resumeData) 
     // Save PDF with generated filename
     const generatedFilename = generateFilename(personalInfo.fullName, '', 'pdf');
     pdf.save(generatedFilename);
+    
+    // Track PDF export
+    trackAction(ACTIONS.PDF_EXPORT, { type: 'resume', template: template });
+    
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);
@@ -1130,6 +1135,9 @@ export const exportToJSON = (data, filename = 'resume.json') => {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
     
+    // Track JSON export
+    trackAction(ACTIONS.JSON_EXPORT);
+    
     return true;
   } catch (error) {
     console.error('Error exporting JSON:', error);
@@ -1301,6 +1309,10 @@ export const exportCoverLetterToPDF = async (filename = 'cover-letter.pdf', cove
 
     // Save PDF
     pdf.save(filename);
+    
+    // Track cover letter PDF export
+    trackAction(ACTIONS.PDF_EXPORT, { type: 'cover_letter', template: template });
+    
     return true;
   } catch (error) {
     console.error('Error generating cover letter PDF:', error);
@@ -1498,6 +1510,9 @@ export const exportCoverLetterToDOCX = async (filename = 'cover-letter.docx', co
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    // Track cover letter DOCX export
+    trackAction(ACTIONS.DOCX_EXPORT, { type: 'cover_letter' });
 
     return true;
   } catch (error) {
